@@ -399,7 +399,7 @@ namespace Fred
       int size = hh.get_size();
       for (int i = 0; i < size; ++i)
       {
-        Person* child = hh.get_enrollee(i);
+        Person child = hh.get_enrollee(i);
         if (child != self && child.get_health_decision_maker() == self)
         {
           if (Global::Verbose > 1)
