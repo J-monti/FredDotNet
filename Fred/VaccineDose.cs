@@ -1,4 +1,6 @@
-﻿namespace Fred
+﻿using System;
+
+namespace Fred
 {
   public class VaccineDose
   {
@@ -16,14 +18,15 @@
       days_between_doses = _days_between_doses;
     }
 
-    void print() {
-      cout << "Time Between Doses:\t " << days_between_doses << "\n";
+    public void print() {
+      //cout << "Time Between Doses:\t " << days_between_doses << "\n";
+      Console.WriteLine("Time Between Doses:\t {0}", days_between_doses);
       efficacy.Print();
       efficacy_delay.Print();
       efficacy_duration.Print();
     }
 
-    bool is_within_age(double real_age) {
+    public bool is_within_age(double real_age) {
       double eff = efficacy.find_value(real_age);
       // printf("age = %.1f  eff = %f\n", real_age, eff);
       if(eff != 0.0){
@@ -32,7 +35,7 @@
       return false;
     }
 
-    double get_duration_of_immunity(double real_age)
+    public double get_duration_of_immunity(double real_age)
     {
       double expected_duration = efficacy_duration.find_value(real_age);
       // select a value from an exponential distribution with mean expected_duration
