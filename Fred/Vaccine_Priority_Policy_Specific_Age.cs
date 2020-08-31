@@ -2,7 +2,7 @@
 {
   public class Vaccine_Priority_Policy_Specific_Age : Policy
   {
-    public Vaccine_Priority_Policy_Specific_Age(VaccineManager vcm)
+    public Vaccine_Priority_Policy_Specific_Age(Vaccine_Manager vcm)
       : base(vcm)
     {
       this.Name = "Vaccine Priority Policy - Sepcific Age Group";

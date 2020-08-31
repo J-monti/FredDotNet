@@ -5,16 +5,42 @@ namespace Fred
 {
   public class AV_Manager : Manager
   {
-    private const int AV_POLICY_PERCENT_SYMPT = 0;
-    private const int AV_POLICY_GIVE_EVERYONE = 1;
-    public AV_Manager(int nav, Population _pop)
+    public int AV_POLICY_PERCENT_SYMPT = 0;
+    public int AV_POLICY_GIVE_EVERYONE = 1;
+
+    private bool do_av;                    //Whether or not antivirals are being disseminated
+    private Antivirals av_package;         //The package of avs available to this manager
+    private int overall_start_day;         //Day to start the av procedure
+    private bool are_policies_set;         //Ensure that the policies for AVs have been set.
+    private Antiviral current_av;          //NEED TO ELIMINATE, HIDDEN to IMPLEMENTATION
+
+    /**
+   * Default constructor. Does not set 'do_av' bool, thereby disabling antirals.
+   */
+    AV_Manager()
+    {
+      this.overall_start_day = -1;
+    }
+
+    /**
+     * Constructor that sets the Population to which this AV_Manager is tied.
+     * This constructor also checks to see if the number of antivirals given in the
+     * params file greater than one and, if so, sets the 'do_av' bool.
+     */
+    public AV_Manager(Population _pop)
       : base(_pop)
     {
-      this.Policies = new List<Policy>();
+
+      this.pop = _pop;
+      this.are_policies_set = false;
+      //char s[80];
+      int nav = 0;
+      FredParameters.GetParameter("number_antivirals", ref nav);
+      this.do_av = false;
       if (nav > 0)
       {
-        this.DoAntivirals = true;
-        this.Antivirals = new Antivirals(nav);
+        this.do_av = true;
+        this.av_package = new Antivirals();
 
         // Gather relavent Input Parameters
         //overall_start_day = 0;
@@ -22,114 +48,184 @@ namespace Fred
         //  get_param(s,&overall_start_day);
 
         // Need to fill the AV_Manager Policies
-        this.Policies.Add(new AntiviralPolicyDistributeToSymptomatics(this));
-        this.Policies.Add(new AntiviralPolicyDistributeToEveryone(this));
+        this.policies.Add(new AV_Policy_Distribute_To_Symptomatics(this));
+        this.policies.Add(new AV_Policy_Distribute_To_Everyone(this));
 
         // Need to run through the Antivirals and give them the appropriate policy
-        this.SetPolicies();
+        set_policies();
       }
       else
       {
-        this.OverallStartDay = null;
+        this.overall_start_day = -1;
       }
     }
 
-    public bool DoAntivirals { get; }
-
-    public bool ArePoliciesSet { get; private set; }
-
-    public Antiviral CurrentAntiviral { get; private set; }
-
-    public Antivirals Antivirals { get; }
-
-    public DateTime? OverallStartDay { get; }
-
-    public List<Policy> Policies { get; }
-
-    public void Update(DateTime day)
+    //Parameters
+    /**
+     * @return  <code>true</code> if antivirals are being disseminated <code>false</code> otherwise
+     */
+    public bool do_antivirals()
     {
-      if (this.DoAntivirals)
-      {
-        this.Antivirals.Update(day);
-      }
+      return do_av;
     }
 
-    public void Reset()
+    /**
+     * @return overall_start_day
+     */
+    public int get_overall_start_day()
     {
-      if (this.DoAntivirals)
-      {
-        this.Antivirals.Reset();
-      }
+      return overall_start_day;
     }
 
-    public void Print()
+    /**
+     * @return a pointer to current_av
+     */
+    public Antiviral get_current_av()
     {
-      if (this.DoAntivirals)
-      {
-        this.Antivirals.Print();
-      }
+      return this.current_av;
     }
 
-    public void Disseminate(DateTime day)
+    //Paramters
+    /**
+     * @return a pointer to this manager's Antiviral package
+     */
+    public Antivirals get_antivirals()
+    {
+      return this.av_package;
+    }
+
+    /**
+     * @return a count of this manager's antivirals
+     * @see Antivirals::get_number_antivirals()
+     */
+    public int get_num_antivirals()
+    {
+      return this.av_package.get_number_antivirals();
+    }
+
+    /**
+     * @return <code>true</code> if policies are set, <code>false</code> otherwise
+     */
+    public bool get_are_policies_set()
+    {
+      return this.are_policies_set;
+    }
+
+    // Manager Functions
+    /**
+     * Push antivirals to agents, needed for prophylaxis
+     *
+     * @param day the simulation day
+     */
+    public void disseminate(int day)
     {
       // There is no queue, only the whole population
-      if (!this.DoAntivirals)
+      if (!this.do_av)
       {
         return;
       }
       int num_avs = 0;
       //current_day = day;
       // The av_package are in a priority based order, so lets loop over the av_package first
-      foreach (var av in this.Antivirals)
+      var avs = this.av_package;
+      for (int iav = 0; iav < avs.Count; iav++)
       {
-        if (av.CurrentStock > 0)
+        var av = avs[iav];
+        if (av.get_current_stock() > 0)
         {
           // Each AV has its one policy
-          var p = av.Policy;
-          this.CurrentAntiviral = av;
+          var p = av.get_policy();
+          this.current_av = av;
           // loop over the entire population
-          for (int ip = 0; ip < this.Population.People.Count; ++ip)
+          for (int ip = 0; ip < this.pop.get_index_size(); ++ip)
           {
-            if (av.CurrentStock == 0)
+            if (av.get_current_stock() == 0)
             {
               break;
             }
-            Person current_person = this.Population.People[ip];
+            var current_person = this.pop.get_person_by_index(ip);
             if (current_person != null)
             {
               // Should the person get an av
-              //int yeah_or_ney = p->choose(current_person,av->get_disease(),day);
+              //int yeah_or_ney = p.choose(current_person,av.get_disease(),day);
               //if(yeah_or_ney == 0){
 
-              if (p->choose_first_negative(current_person, av.Disease, day) == true)
+              if (p.choose_first_negative(current_person, av.get_disease(), day) == true)
               {
-                Console.WriteLine("Giving Antiviral for disease {0} to {1}", av.Disease, ip);
-                av.RemoveStock(1);
-                current_person.Health.Take(av, day);
+                if (Global.Debug > 3)
+                {
+                  Console.WriteLine($"Giving Antiviral for disease {av.get_disease()} to {ip}");
+                }
+                av.remove_stock(1);
+                current_person.get_health().take(av, day);
                 num_avs++;
               }
             }
           }
         }
       }
-      Global.DailyTracker.SetIndexKeyPair(day, "Av", num_avs);
+      Global.Daily_Tracker.set_index_key_pair(day, "Av", num_avs);
     }
 
-    private void SetPolicies()
+    // Utility Functions
+    /**
+     * Perform the daily update for this object
+     *
+     * @param day the simulation day
+     */
+    public override void update(int day)
     {
-      foreach (var av in this.Antivirals)
+      if (this.do_av)
       {
-        if (av.IsProphylaxis)
+        this.av_package.update(day);
+        if (Global.Debug > 1)
         {
-          av.SetPolicy(this.Policies[AV_POLICY_GIVE_EVERYONE]);
+          this.av_package.print_stocks();
+        }
+      }
+    }
+
+    /**
+     * Put this object back to its original state
+     */
+    public override void reset()
+    {
+      if (this.do_av)
+      {
+        this.av_package.reset();
+      }
+    }
+
+    /**
+     * Print out information about this object
+     */
+    public override void print()
+    {
+      if (this.do_av)
+      {
+        this.av_package.print();
+      }
+    }
+
+    /**
+     * Member to set the policy of all of the Antivirals
+     */
+    private void set_policies()
+    {
+      var avs = this.av_package;
+      for (int iav = 0; iav < avs.Count; iav++)
+      {
+        if (avs[iav].is_prophylaxis())
+        {
+          avs[iav].set_policy(this.policies[AV_POLICY_GIVE_EVERYONE]);
         }
         else
         {
-          av.SetPolicy(this.Policies[AV_POLICY_PERCENT_SYMPT]);
+          avs[iav].set_policy(this.policies[AV_POLICY_PERCENT_SYMPT]);
         }
       }
 
-      this.ArePoliciesSet = true;
+      this.are_policies_set = true;
     }
   }
 }

@@ -41,7 +41,7 @@ namespace Fred
       Params::get_param_from_string("office_size", Office_size);
 
       // workplace size limits
-      Workplace::workplace_size_group_count = Params::get_param_vector((char*)"workplace_size_max", Workplace::workplace_size_max);
+      Workplace::workplace_size_group_count = Params::get_param_vector((string)"workplace_size_max", Workplace::workplace_size_max);
       //Add the last column so that it goes to intmax
       Workplace::workplace_size_max.push_back(INT_MAX);
       Workplace::workplace_size_group_count++;
@@ -52,8 +52,8 @@ namespace Fred
       }
 
       Params::get_param_from_string("workplace_contacts", &Workplace::contacts_per_day);
-      int n = Params::get_param_matrix((char*)"workplace_trans_per_contact", &Workplace::prob_transmission_per_contact);
-      if (Global::Verbose > 1)
+      int n = Params::get_param_matrix((string)"workplace_trans_per_contact", &Workplace::prob_transmission_per_contact);
+      if (Global.Verbose > 1)
       {
         printf("\nWorkplace_contact_prob:\n");
         for (int i = 0; i < n; ++i)
@@ -94,7 +94,7 @@ namespace Fred
         Workplace::contacts_per_day *= max_prob;
       }
 
-      if (Global::Verbose > 0)
+      if (Global.Verbose > 0)
       {
         printf("\nWorkplace_contact_prob after normalization:\n");
         for (int i = 0; i < n; ++i)
@@ -171,7 +171,7 @@ namespace Fred
     public void setup_offices()
     {
       int rooms = get_number_of_rooms();
-      //FRED_STATUS(1, "workplace %d %s number %d rooms %d\n", this.get_id(), this.get_label(), this.get_size(), rooms);
+      //FredUtils.Status(1, "workplace %d %s number %d rooms %d\n", this.get_id(), this.get_label(), this.get_size(), rooms);
       for (int i = 0; i < rooms; ++i)
       {
         string new_label = string.Format("{0}-{0:0.000}", this.Label, i);
@@ -182,7 +182,7 @@ namespace Fred
 
         office.set_workplace(this);
         this.offices.Add(office);
-        //FRED_STATUS(1, "workplace %d %s added office %d %s %d\n", this.get_id(), this.get_label(), i,
+        //FredUtils.Status(1, "workplace %d %s added office %d %s %d\n", this.get_id(), this.get_label(), i,
         //            office.get_label(), office.get_id());
       }
     }
@@ -194,11 +194,11 @@ namespace Fred
         return null;
       }
 
-      //FRED_STATUS(1, "assign office for person %d at workplace %d %s size %d == ", per.get_id(),
+      //FredUtils.Status(1, "assign office for person %d at workplace %d %s size %d == ", per.get_id(),
       //            this.get_id(), this.get_label(), this.get_size());
       // pick next office, round-robin
       int i = this.next_office;
-      //FRED_STATUS(1, "office = %d %s %d\n",
+      //FredUtils.Status(1, "office = %d %s %d\n",
       //      i, offices[i].get_label(), offices[i].get_id());
 
       // update next pick

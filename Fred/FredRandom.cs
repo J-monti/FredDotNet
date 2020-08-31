@@ -18,6 +18,11 @@ namespace Fred
       return s_Random.Next();
     }
 
+    public static int Next(int higher)
+    {
+      return s_Random.Next(higher);
+    }
+
     public static int Next(int lower, int higher)
     {
       return s_Random.Next(lower, higher);
@@ -26,6 +31,11 @@ namespace Fred
     public static double NextDouble()
     {
       return s_Random.NextDouble();
+    }
+
+    public static double NextDouble(double minimum, double maximum)
+    {
+      return s_Random.NextDouble() * (maximum - minimum) + minimum;
     }
 
     public static int NextDayInYear()

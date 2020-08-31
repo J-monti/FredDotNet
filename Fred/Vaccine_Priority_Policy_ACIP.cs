@@ -2,7 +2,7 @@
 {
   public class Vaccine_Priority_Policy_ACIP : Policy
   {
-    public Vaccine_Priority_Policy_ACIP(VaccineManager vcm)
+    public Vaccine_Priority_Policy_ACIP(Vaccine_Manager vcm)
       : base(vcm)
     {
       this.Name = "Vaccine Priority Policy - ACIP Priority";

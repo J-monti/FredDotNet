@@ -30,14 +30,14 @@ namespace Fred
     {
       base.setup(disease);
 
-      int id = disease->get_id();
+      int id = disease.get_id();
       //Params::get_indexed_param("symp",id,&prob_symptomatic);
 
     }
 
     Trajectory* get_trajectory(double real_age)
     {
-      double Symp_threshold = disease->get_symptomaticity_threshold();
+      double Symp_threshold = disease.get_symptomaticity_threshold();
       Params::get_param_from_string("symptoms_scaling", &symptoms_scaling);
       Params::get_param_from_string("viral_infectivity_scaling", &viral_infectivity_scaling);
       Params::get_param_from_string("days_sick", &days_sick);
@@ -53,8 +53,8 @@ namespace Fred
 
       Loads* loads;
       loads = new Loads;
-      loads->clear();
-      loads->insert(pair<int, double>(1, 1.0));
+      loads.clear();
+      loads.insert(pair<int, double>(1, 1.0));
 
       Trajectory* trajectory = new Trajectory();
 
@@ -62,7 +62,7 @@ namespace Fred
       double Sympt, Inft;
 
       // Loop over different strains.  
-      for (it = loads->begin(); it != loads->end(); it++)
+      for (it = loads.begin(); it != loads.end(); it++)
       {
 
         // Now evaluate infectivity and symptoms score for each day. 
@@ -94,12 +94,12 @@ namespace Fred
       //Check if asymptomatic:
       //double max_symp = *std::max_element(symptomaticity_trajectory.begin(), symptomaticity_trajectory.end());
       //if (max_symp < Symp_threshold){
-      //	trajectory->set_infectivity_trajectory(it->first, infectivity_AStrajectory);
+      //	trajectory.set_infectivity_trajectory(it.first, infectivity_AStrajectory);
       //}
       //else{
-      trajectory->set_infectivity_trajectory(it->first, infectivity_trajectory);
+      trajectory.set_infectivity_trajectory(it.first, infectivity_trajectory);
       //}
-      trajectory->set_symptomaticity_trajectory(symptomaticity_trajectory);
+      trajectory.set_symptomaticity_trajectory(symptomaticity_trajectory);
 
     }	// end loop over strains
   
@@ -136,7 +136,7 @@ namespace Fred
   double random_phenotypic_value(double scale)
   {
     // Picks a uniform random number in [-scale, scale] 
-    double r = Random::draw_random();
+    double r = FredRandom.NextDouble();
     double phenotype = (2.0 * r - 1.0) * scale;
     return phenotype;
   }

@@ -6,133 +6,158 @@ namespace Fred
 {
   public class Antivirals : List<Antiviral>
   {
-    public Antivirals(int nav)
+    /**
+   * Default constructor<br />
+   * Reads all important values from parameter file
+   */
+    public Antivirals()
     {
-      this.Clear();
-      for (int iav = 0; iav < nav; iav++)
-      {
-        int Disease, CorLength, InitSt, TotAvail, PerDay;
-        double RedInf, RedSusc, RedASympPer, RedSympPer, ProbSymp, Eff, PerSympt;
-        int StrtDay, Proph;
-        bool isProph;
 
-        Params::get_indexed_param("av_disease", iav, &Disease);
-        Params::get_indexed_param("av_initial_stock", iav, &InitSt);
-        Params::get_indexed_param("av_total_avail", iav, &TotAvail);
-        Params::get_indexed_param("av_additional_per_day", iav, &PerDay);
-        //get_indexed_param("av_percent_resistance",iav,&Eff);
-        Eff = 1.0; // Not implemented yet
-        Params::get_indexed_param("av_course_length", iav, &CorLength);
-        Params::get_indexed_param("av_reduce_infectivity", iav, &RedInf);
-        Params::get_indexed_param("av_reduce_susceptibility", iav, &RedSusc);
-        Params::get_indexed_param("av_reduce_symptomatic_period", iav, &RedSympPer);
-        Params::get_indexed_param("av_reduce_asymptomatic_period", iav, &RedASympPer);
-        Params::get_indexed_param("av_prob_symptoms", iav, &ProbSymp);
-        Params::get_indexed_param("av_start_day", iav, &StrtDay);
-        Params::get_indexed_param("av_prophylaxis", iav, &Proph);
-        if (Proph == 1) isProph = true;
-        else isProph = false;
-        Params::get_indexed_param("av_percent_symptomatics", iav, &PerSympt);
-        int n;
-        Params::get_indexed_param("av_course_start_day", iav, &n);
-        var AVCourseSt = new double[n];
-        int MaxAVCourseSt = Params::get_indexed_param_vector("av_course_start_day", iav, AVCourseSt) - 1;
-
-        this.Add(new Antiviral(Disease, CorLength, RedInf,
-                                RedSusc, RedASympPer, RedSympPer,
-                                ProbSymp, InitSt, TotAvail, PerDay,
-                                Eff, AVCourseSt, MaxAVCourseSt,
-                                StrtDay, isProph, PerSympt));
-
-      }
-
-      this.QualityControl(Global.Diseases.Count);
     }
 
-    public int GetTotalCurrentStock()
+    //Paramter Access Members
+    /**
+     * @return <code>true</code> if there are Antivirals, <code>false</code> if not
+     */
+    public bool do_av() { return this.Count > 0; }
+
+    /**
+     * @return the count of antivirals
+     */
+    public int get_number_antivirals() { return this.Count; }
+
+    /**
+     * @return the total current stock of all Antivirals in this group
+     */
+    public int get_total_current_stock()
     {
-      return this.Sum(a => a.CurrentStock);
+      return this.Sum(a => a.get_current_stock());
     }
 
-    public List<Antiviral> FindApplicableAVs(int disease)
+    /**
+     * @return a pointer to this groups Antiviral vector
+     */
+    public List<Antiviral> get_AV_vector() { return this; }
+
+    /**
+     * Return a pointer to a specific Antiviral in this group's vector
+     */
+    public Antiviral get_AV(int nav) { return this[nav]; }
+
+    // Utility Functions
+    /**
+     * Print out information about this object
+     */
+    public void print()
     {
-      var avs = new List<Antiviral>();
-      for(int iav = 0; iav < this.Count; iav++)
+      Console.WriteLine();
+      Console.WriteLine("Antiviral Package");
+      Console.WriteLine($"There are {this.Count} antivirals to choose from.");
+      for (int iav = 0; iav < this.Count; iav++)
       {
-        if(this[iav].Disease == disease && this[iav].CurrentStock != 0)
-        {
-          avs.Add(this[iav]);
-        }
+        Console.WriteLine();
+        Console.WriteLine($"Antiviral # {iav}");
+        this[iav].print();
       }
 
-      return avs;
-    }
-
-    public List<Antiviral> ProphylaxisAVs()
-    {
-      var avs = new List<Antiviral>();
-      for (int iav = 0; iav < this.Count;iav++)
-      {
-        if(this[iav].IsProphylaxis)
-        {
-          avs.Add(this[iav]);
-        }
-      }
-
-      return avs;
-    }
-
-    public void Print() {
-      Console.WriteLine("Antiviral Package ");
-      Console.WriteLine("There are {0} antivirals to choose from.", this.Count);
-      for(int iav = 0; iav<this.Count; iav++)
-      {
-        Console.WriteLine("Antiviral #{0}", iav);
-        this[iav].Print();
-      }
+      Console.WriteLine();
       Console.WriteLine();
     }
 
-    public void PrintStocks()
+    /**
+     * Print out current stock information for each Anitviral in this group's vector
+     */
+    public void print_stocks()
     {
-      for(int iav = 0; iav<this.Count; iav++)
+      for (int iav = 0; iav < this.Count; iav++)
       {
-        Console.WriteLine("Antiviral #{0}", iav);
-        this[iav].PrintStocks();
+        Console.WriteLine();
+        Console.WriteLine($"Antiviral # {iav}");
+        this[iav].print_stocks();
         Console.WriteLine();
       }
     }
 
-    private void QualityControl(int ndiseases)
+    /**
+     * Put this object back to its original state
+     */
+    public void reset()
     {
-      for(int iav = 0; iav<this.Count;iav++) {
-        if (Global.Verbose > 1) {
-          this[iav].Print();
-        }
+      for (int iav = 0; iav < this.Count; iav++)
+      {
+        this[iav].reset();
+      }
+    }
 
-        if(this[iav].QualityControl(ndiseases))
+    /**
+     * Perform the daily update for this object
+     *
+     * @param day the simulation day
+     */
+    public void update(int day)
+    {
+      for (int iav = 0; iav < this.Count; iav++)
+      {
+        this[iav].update(day);
+      }
+    }
+
+    /**
+     * Print out a daily report
+     *
+     * @param day the simulation day
+     */
+    public void report(int day)
+    {
+      for (int iav = 0; iav < this.Count; iav++)
+      {
+        this[iav].report(day);
+      }
+    }
+
+    /**
+     * Used during debugging to verify that code is functioning properly. <br />
+     * Checks the quality_control of each Antiviral in this group's vector of AVs
+     *
+     * @param ndiseases the number of diseases
+     * @return 1 if there is a problem, 0 otherwise
+     */
+    public void quality_control(int ndiseases)
+    {
+      for (int iav = 0; iav < this.Count; iav++)
+      {
+        if (Global.Verbose > 1)
         {
-          var error = string.Format("Help! AV# {0} failed Quality!", iav);
-          Console.Error.WriteLine(error);
-          throw new InvalidOperationException(error);
+          this[iav].print();
+        }
+
+        if (this[iav].quality_control(ndiseases) == 1)
+        {
+          Utils.fred_abort("Help! AV# {0} failed Quality", iav);
         }
       }
     }
 
-    public void Update(DateTime day)
+    // Polling the collection 
+    /**
+     * This method looks through the vector of Antiviral objects and checks to see if each one is
+     * effective against the particular disease and if it also has some in stock.  If so, then that
+     * particular AV is added to the return vector.
+     *
+     * @param the disease to poll for
+     * @return a vector of pointers to Antiviral objects
+     */
+    public List<Antiviral> find_applicable_AVs(int disease)
     {
-      for (int iav = 0; iav < this.Count; iav++)
-      {
-        this[iav].Update(day);
-      }
+      return this.Where(av => av.get_disease() == disease && av.get_current_stock() != 0).ToList();
     }
 
-    public void Reset()
+    /**
+     * @return a vector of pointers to all Antiviral objects in this group that are prophylaxis
+     */
+    public List<Antiviral> prophylaxis_AVs()
     {
-      for (int iav = 0; iav < this.Count; iav++)
-      {
-        this[iav].Reset();
-      }
+      return this.Where(av => av.is_prophylaxis()).ToList();
     }
   }
 }

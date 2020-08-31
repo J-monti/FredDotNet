@@ -34,9 +34,9 @@ namespace Fred
     {
 
       // initialize MSM network
-      for (int p = 0; p < Global::Pop.get_index_size(); ++p)
+      for (int p = 0; p < Global.Pop.get_index_size(); ++p)
       {
-        Person person = Global::Pop.get_person_by_index(p);
+        Person person = Global.Pop.get_person_by_index(p);
         if (person != NULL)
         {
           int age = person.get_age();
@@ -46,7 +46,7 @@ namespace Fred
           {
             if (FredRandom.NextDouble() < 0.01)
             {
-              person.join_network(Global::Sexual_Partner_Network);
+              person.join_network(Global.Sexual_Partner_Network);
               person.become_susceptible(0);
             }
           }
@@ -54,7 +54,7 @@ namespace Fred
       }
 
       // create random sexual partnerships
-      Global::Sexual_Partner_Network.create_random_network(2.0);
+      Global.Sexual_Partner_Network.create_random_network(2.0);
     }
   }
 }

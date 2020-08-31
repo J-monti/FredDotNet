@@ -3,7 +3,7 @@
   public class School : Place
   {
     static double contacts_per_day;
-    static double** prob_transmission_per_contact;
+    static double[,] prob_transmission_per_contact;
     static int school_classroom_size = 0;
     static string school_closure_policy = "undefined";
     static int school_closure_day = 0;
@@ -29,72 +29,71 @@
     static int global_close_date = 0;
     static int global_open_date = 0;
 
-    School() : Place()
+    public School()
     {
-      this->set_type(Place::TYPE_SCHOOL);
-      this->set_subtype(Place::SUBTYPE_NONE);
-      this->intimacy = 0.025;
+      this.set_type(Place::TYPE_SCHOOL);
+      this.set_subtype(Place::SUBTYPE_NONE);
+      this.intimacy = 0.025;
       for (int i = 0; i < GRADES; ++i)
       {
-        this->students_in_grade[i] = 0;
-        this->orig_students_in_grade[i] = 0;
-        this->next_classroom[i] = 0;
-        this->classrooms[i].clear();
+        this.students_in_grade[i] = 0;
+        this.orig_students_in_grade[i] = 0;
+        this.next_classroom[i] = 0;
+        this.classrooms[i].clear();
       }
-      this->closure_dates_have_been_set = false;
-      this->staff_size = 0;
-      this->max_grade = -1;
-      this->county_index = -1;
-      this->income_quartile = -1;
+      this.closure_dates_have_been_set = false;
+      this.staff_size = 0;
+      this.max_grade = -1;
+      this.county_index = -1;
+      this.income_quartile = -1;
     }
 
 
-    School::School(const char* lab, char _subtype, fred::geo lon, fred::geo lat) : Place(lab, lon, lat)
+    public School(string lab, char _subtype, fred::geo lon, fred::geo lat)
+      : base (lab, lon, lat)
     {
-      this->set_type(Place::TYPE_SCHOOL);
-      this->set_subtype(_subtype);
-      this->intimacy = 0.025;
+      this.set_type(Place::TYPE_SCHOOL);
+      this.set_subtype(_subtype);
+      this.intimacy = 0.025;
       for (int i = 0; i < GRADES; ++i)
       {
-        this->students_in_grade[i] = 0;
-        this->orig_students_in_grade[i] = 0;
-        this->next_classroom[i] = 0;
-        this->classrooms[i].clear();
+        this.students_in_grade[i] = 0;
+        this.orig_students_in_grade[i] = 0;
+        this.next_classroom[i] = 0;
+        this.classrooms[i].clear();
       }
-      this->closure_dates_have_been_set = false;
-      this->staff_size = 0;
-      this->max_grade = -1;
-      this->county_index = -1;
-      this->income_quartile = -1;
+      this.closure_dates_have_been_set = false;
+      this.staff_size = 0;
+      this.max_grade = -1;
+      this.county_index = -1;
+      this.income_quartile = -1;
     }
 
-    void School::prepare()
+    public void prepare()
     {
-      assert(Global::Pop.is_load_completed());
       // call base class function to perform preparations common to all Places 
-      Place::prepare();
-
+      base.prepare();
       // record original size in each grade
       for (int g = 0; g < GRADES; ++g)
       {
-        this->orig_students_in_grade[g] = this->students_in_grade[g];
+        this.orig_students_in_grade[g] = this.students_in_grade[g];
       }
     }
 
 
-    void School::get_parameters()
+    void get_parameters()
     {
 
-      Params::get_param_from_string("school_contacts", &School::contacts_per_day);
-      int n = Params::get_param_matrix((char*)"school_trans_per_contact", &School::prob_transmission_per_contact);
-      if (Global::Verbose > 1)
+      Params::get_param_from_string("school_contacts", &contacts_per_day);
+      int n = Params::get_param_matrix((string)"school_trans_per_contact", &prob_transmission_per_contact);
+      if (Global.Verbose > 1)
       {
         printf("\nSchool_contact_prob:\n");
         for (int i = 0; i < n; ++i)
         {
           for (int j = 0; j < n; ++j)
           {
-            printf("%f ", School::prob_transmission_per_contact[i][j]);
+            printf("%f ", prob_transmission_per_contact[i][j]);
           }
           printf("\n");
         }
@@ -107,9 +106,9 @@
       {
         for (int j = 0; j < n; ++j)
         {
-          if (School::prob_transmission_per_contact[i][j] > max_prob)
+          if (prob_transmission_per_contact[i][j] > max_prob)
           {
-            max_prob = School::prob_transmission_per_contact[i][j];
+            max_prob = prob_transmission_per_contact[i][j];
           }
         }
       }
@@ -121,67 +120,67 @@
         {
           for (int j = 0; j < n; ++j)
           {
-            School::prob_transmission_per_contact[i][j] /= max_prob;
+            prob_transmission_per_contact[i][j] /= max_prob;
           }
         }
         // compensate contact rate
-        School::contacts_per_day *= max_prob;
+        contacts_per_day *= max_prob;
       }
 
-      if (Global::Verbose > 0)
+      if (Global.Verbose > 0)
       {
         printf("\nSchool_contact_prob after normalization:\n");
         for (int i = 0; i < n; ++i)
         {
           for (int j = 0; j < n; ++j)
           {
-            printf("%f ", School::prob_transmission_per_contact[i][j]);
+            printf("%f ", prob_transmission_per_contact[i][j]);
           }
           printf("\n");
         }
-        printf("\ncontact rate: %f\n", School::contacts_per_day);
+        printf("\ncontact rate: %f\n", contacts_per_day);
       }
       // end normalization
 
-      Params::get_param_from_string("school_classroom_size", &School::school_classroom_size);
+      Params::get_param_from_string("school_classroom_size", &school_classroom_size);
 
       // summer school parameters
-      Params::get_param_from_string("school_summer_schedule", &School::school_summer_schedule);
-      Params::get_param_from_string("school_summer_start", School::school_summer_start);
-      Params::get_param_from_string("school_summer_end", School::school_summer_end);
-      sscanf(School::school_summer_start, "%d-%d", &School::summer_start_month, &School::summer_start_day);
-      sscanf(School::school_summer_end, "%d-%d", &School::summer_end_month, &School::summer_end_day);
+      Params::get_param_from_string("school_summer_schedule", &school_summer_schedule);
+      Params::get_param_from_string("school_summer_start", school_summer_start);
+      Params::get_param_from_string("school_summer_end", school_summer_end);
+      sscanf(school_summer_start, "%d-%d", &summer_start_month, &summer_start_day);
+      sscanf(school_summer_end, "%d-%d", &summer_end_month, &summer_end_day);
 
       // school closure parameters
-      Params::get_param_from_string("school_closure_policy", School::school_closure_policy);
-      Params::get_param_from_string("school_closure_duration", &School::school_closure_duration);
-      Params::get_param_from_string("school_closure_delay", &School::school_closure_delay);
-      Params::get_param_from_string("school_closure_day", &School::school_closure_day);
-      Params::get_param_from_string("min_school_closure_day", &School::min_school_closure_day);
-      Params::get_param_from_string("school_closure_ar_threshold", &School::school_closure_threshold);
+      Params::get_param_from_string("school_closure_policy", school_closure_policy);
+      Params::get_param_from_string("school_closure_duration", &school_closure_duration);
+      Params::get_param_from_string("school_closure_delay", &school_closure_delay);
+      Params::get_param_from_string("school_closure_day", &school_closure_day);
+      Params::get_param_from_string("min_school_closure_day", &min_school_closure_day);
+      Params::get_param_from_string("school_closure_ar_threshold", &school_closure_threshold);
       Params::get_param_from_string("individual_school_closure_ar_threshold",
-            &School::individual_school_closure_threshold);
-      Params::get_param_from_string("school_closure_cases", &School::school_closure_cases);
+            &individual_school_closure_threshold);
+      Params::get_param_from_string("school_closure_cases", &school_closure_cases);
 
       // aliases for parameters
       int Weeks;
       Params::get_param_from_string("Weeks", &Weeks);
       if (Weeks > -1)
       {
-        School::school_closure_duration = 7 * Weeks;
+        school_closure_duration = 7 * Weeks;
       }
 
       int cases;
       Params::get_param_from_string("Cases", &cases);
       if (cases > -1)
       {
-        School::school_closure_cases = cases;
+        school_closure_cases = cases;
       }
     }
 
-    int School::get_group(int disease_id, Person* per)
+    int get_group(int disease_id, Person* per)
     {
-      int age = per->get_age();
+      int age = per.get_age();
       if (age < 12)
       {
         return 0;
@@ -190,7 +189,7 @@
       {
         return 1;
       }
-      else if (per->is_student())
+      else if (per.is_student())
       {
         return 2;
       }
@@ -200,42 +199,42 @@
       }
     }
 
-    double School::get_transmission_prob(int disease_id, Person* i, Person* s)
+    double get_transmission_prob(int disease_id, Person* i, Person* s)
     {
       // i = infected agent
       // s = susceptible agent
       int row = get_group(disease_id, i);
       int col = get_group(disease_id, s);
-      double tr_pr = School::prob_transmission_per_contact[row][col];
+      double tr_pr = prob_transmission_per_contact[row][col];
       return tr_pr;
     }
 
-    void School::close(int day, int day_to_close, int duration)
+    void close(int day, int day_to_close, int duration)
     {
-      this->close_date = day_to_close;
-      this->open_date = close_date + duration;
-      this->closure_dates_have_been_set = true;
+      this.close_date = day_to_close;
+      this.open_date = close_date + duration;
+      this.closure_dates_have_been_set = true;
 
       // log this school closure decision
-      if (Global::Verbose > 0)
+      if (Global.Verbose > 0)
       {
         printf("SCHOOL %s CLOSURE decision day %d close_date %d duration %d open_date %d\n",
-         this->get_label(), day, this->close_date, duration, this->open_date);
+         this.get_label(), day, this.close_date, duration, this.open_date);
       }
     }
 
 
-    bool School::is_open(int day)
+    bool is_open(int day)
     {
-      bool open = (day < this->close_date || this->open_date <= day);
+      bool open = (day < this.close_date || this.open_date <= day);
       if (!open)
       {
-        FRED_VERBOSE(0, "Place %s is closed on day %d\n", this->get_label(), day);
+        FredUtils.Log(0, "Place %s is closed on day %d\n", this.get_label(), day);
       }
       return open;
     }
 
-    bool School::should_be_open(int day, int disease_id)
+    bool should_be_open(int day, int disease_id)
     {
       // no students
       if (get_size() == 0)
@@ -244,38 +243,38 @@
       }
 
       // summer break
-      if (School::school_summer_schedule > 0)
+      if (school_summer_schedule > 0)
       {
         int month = Date::get_month();
         int day_of_month = Date::get_day_of_month();
-        if ((month == School::summer_start_month && School::summer_start_day <= day_of_month) ||
-           (month == School::summer_end_month && day_of_month <= School::summer_end_day) ||
-           (School::summer_start_month < month && month < School::summer_end_month))
+        if ((month == summer_start_month && summer_start_day <= day_of_month) ||
+           (month == summer_end_month && day_of_month <= summer_end_day) ||
+           (summer_start_month < month && month < summer_end_month))
         {
-          if (Global::Verbose > 1)
+          if (Global.Verbose > 1)
           {
-            fprintf(Global::Statusfp, "School %s closed for summer\n", this->get_label());
-            fflush(Global::Statusfp);
+            Console.WriteLine("School %s closed for summer\n", this.get_label());
+            
           }
           return false;
         }
       }
 
       // stick to previously made decision to close
-      if (this->closure_dates_have_been_set)
+      if (this.closure_dates_have_been_set)
       {
         return is_open(day);
       }
 
       // global school closure policy in effect
-      if (strcmp(School::school_closure_policy, "global") == 0)
+      if (strcmp(school_closure_policy, "global") == 0)
       {
         apply_global_school_closure_policy(day, disease_id);
         return is_open(day);
       }
 
       // individual school closure policy in effect
-      if (strcmp(School::school_closure_policy, "individual") == 0)
+      if (strcmp(school_closure_policy, "individual") == 0)
       {
         apply_individual_school_closure_policy(day, disease_id);
         return is_open(day);
@@ -285,67 +284,67 @@
       return true;
     }
 
-    void School::apply_global_school_closure_policy(int day, int disease_id)
+    void apply_global_school_closure_policy(int day, int disease_id)
     {
 
       // Only test triggers for school closure if not global closure is not already activated
-      if (School::global_closure_is_active == false)
+      if (global_closure_is_active == false)
       {
         // Setting school_closure_day > -1 overrides other global triggers.
         // Close schools if the closure date has arrived (after a delay)
-        if (School::school_closure_day > -1)
+        if (school_closure_day > -1)
         {
-          if (School::school_closure_day <= day)
+          if (school_closure_day <= day)
           {
             // the following only happens once
-            School::global_close_date = day + School::school_closure_delay;
-            School::global_open_date = day + School::school_closure_delay
-              + School::school_closure_duration;
-            School::global_closure_is_active = true;
+            global_close_date = day + school_closure_delay;
+            global_open_date = day + school_closure_delay
+              + school_closure_duration;
+            global_closure_is_active = true;
           }
         }
         else
         {
           // Close schools if the global symptomatic attack rate has reached the threshold (after a delay)
-          Disease* disease = Global::Diseases.get_disease(disease_id);
-          if (School::school_closure_threshold <= disease->get_symptomatic_attack_rate())
+          Disease* disease = Global.Diseases.get_disease(disease_id);
+          if (school_closure_threshold <= disease.get_symptomatic_attack_rate())
           {
             // the following only happens once
-            School::global_close_date = day + School::school_closure_delay;
-            School::global_open_date = day + School::school_closure_delay
-              + School::school_closure_duration;
-            School::global_closure_is_active = true;
+            global_close_date = day + school_closure_delay;
+            global_open_date = day + school_closure_delay
+              + school_closure_duration;
+            global_closure_is_active = true;
           }
         }
       }
-      if (School::global_closure_is_active)
+      if (global_closure_is_active)
       {
         // set close and open dates for this school (only once)
-        close(day, School::global_close_date, School::school_closure_duration);
+        close(day, global_close_date, school_closure_duration);
 
         // log this school closure decision
-        if (Global::Verbose > 0)
+        if (Global.Verbose > 0)
         {
-          Disease* disease = Global::Diseases.get_disease(disease_id);
+          Disease* disease = Global.Diseases.get_disease(disease_id);
           printf("GLOBAL SCHOOL CLOSURE pop_ar %5.2f local_cases = %d / %d (%5.2f)\n",
-           disease->get_symptomatic_attack_rate(), get_total_cases(disease_id),
+           disease.get_symptomatic_attack_rate(), get_total_cases(disease_id),
            get_size(), get_symptomatic_attack_rate(disease_id));
         }
       }
     }
 
-    void School::apply_individual_school_closure_policy(int day, int disease_id)
+    void apply_individual_school_closure_policy(int day, int disease_id)
     {
 
-      // don't apply any policy prior to School::min_school_closure_day
-      if (day <= School::min_school_closure_day)
+      // don't apply any policy prior to min_school_closure_day
+      if (day <= min_school_closure_day)
       {
         return;
       }
 
       // don't apply any policy before the epidemic reaches a noticeable threshold
-      Disease* disease = Global::Diseases.get_disease(disease_id);
-      if (disease->get_symptomatic_attack_rate() < School::school_closure_threshold)
+      Disease* disease = Global.Diseases.get_disease(disease_id);
+      if (disease.get_symptomatic_attack_rate() < school_closure_threshold)
       {
         return;
       }
@@ -353,117 +352,117 @@
       bool close_this_school = false;
 
       // if school_closure_cases > -1 then close if this number of cases occurs
-      if (School::school_closure_cases != -1)
+      if (school_closure_cases != -1)
       {
-        close_this_school = (School::school_closure_cases <= get_total_cases(disease_id));
+        close_this_school = (school_closure_cases <= get_total_cases(disease_id));
       }
       else
       {
         // close if attack rate threshold is reached
-        close_this_school = (School::individual_school_closure_threshold <= get_symptomatic_attack_rate(disease_id));
+        close_this_school = (individual_school_closure_threshold <= get_symptomatic_attack_rate(disease_id));
       }
 
       if (close_this_school)
       {
         // set close and open dates for this school (only once)
-        close(day, day + School::school_closure_delay, School::school_closure_duration);
+        close(day, day + school_closure_delay, school_closure_duration);
 
         // log this school closure decision
-        if (Global::Verbose > 0)
+        if (Global.Verbose > 0)
         {
-          Disease* disease = Global::Diseases.get_disease(disease_id);
+          Disease* disease = Global.Diseases.get_disease(disease_id);
           printf("LOCAL SCHOOL CLOSURE pop_ar %.3f local_cases = %d / %d (%.3f)\n",
-           disease->get_symptomatic_attack_rate(), get_total_cases(disease_id),
+           disease.get_symptomatic_attack_rate(), get_total_cases(disease_id),
            get_size(), get_symptomatic_attack_rate(disease_id));
         }
       }
     }
 
-    double School::get_contacts_per_day(int disease_id)
+    double get_contacts_per_day(int disease_id)
     {
-      return School::contacts_per_day;
+      return contacts_per_day;
     }
 
-    int School::enroll(Person* person)
+    int enroll(Person* person)
     {
 
       // call base class method:
       int return_value = Place::enroll(person);
 
-      FRED_VERBOSE(1, "Enroll person %d age %d in school %d %s new size %d\n",
-             person->get_id(), person->get_age(), this->get_id(), this->get_label(), this->get_size());
-      if (person->is_teacher())
+      FredUtils.Log(1, "Enroll person %d age %d in school %d %s new size %d\n",
+             person.get_id(), person.get_age(), this.get_id(), this.get_label(), this.get_size());
+      if (person.is_teacher())
       {
-        this->staff_size++;
+        this.staff_size++;
       }
       else
       {
-        int age = person->get_age();
+        int age = person.get_age();
         int grade = ((age < GRADES) ? age : GRADES - 1);
         assert(grade > 0);
-        this->students_in_grade[grade]++;
-        if (grade > this->max_grade)
+        this.students_in_grade[grade]++;
+        if (grade > this.max_grade)
         {
-          this->max_grade = grade;
+          this.max_grade = grade;
         }
-        person->set_grade(grade);
+        person.set_grade(grade);
       }
 
       return return_value;
     }
 
-    void School::unenroll(int pos)
+    void unenroll(int pos)
     {
-      int size = this->enrollees.size();
+      int size = this.enrollees.size();
       assert(0 <= pos && pos < size);
-      Person* removed = this->enrollees[pos];
-      int grade = removed->get_grade();
-      FRED_VERBOSE(1, "UNENROLL person %d age %d grade %d, is_teacher %d from school %d %s Size = %d\n",
-             removed->get_id(), removed->get_age(), grade, removed->is_teacher() ? 1 : 0, this->get_id(), this->get_label(), this->get_size());
+      Person* removed = this.enrollees[pos];
+      int grade = removed.get_grade();
+      FredUtils.Log(1, "UNENROLL person %d age %d grade %d, is_teacher %d from school %d %s Size = %d\n",
+             removed.get_id(), removed.get_age(), grade, removed.is_teacher() ? 1 : 0, this.get_id(), this.get_label(), this.get_size());
 
       // call the base class method
       Place::unenroll(pos);
 
-      if (removed->is_teacher() || grade == 0)
+      if (removed.is_teacher() || grade == 0)
       {
-        this->staff_size--;
+        this.staff_size--;
       }
       else
       {
-        assert(0 < grade && grade <= this->max_grade);
-        this->students_in_grade[grade]--;
+        assert(0 < grade && grade <= this.max_grade);
+        this.students_in_grade[grade]--;
       }
-      removed->set_grade(0);
-      FRED_VERBOSE(1, "UNENROLLED from school %d %s size = %d\n", this->get_id(), this->get_label(), this->get_size());
+      removed.set_grade(0);
+      FredUtils.Log(1, "UNENROLLED from school %d %s size = %d\n", this.get_id(), this.get_label(), this.get_size());
     }
 
-    void School::print(int disease_id)
+    void print(int disease_id)
     {
-      fprintf(Global::Statusfp, "Place %d label %s type %c ", this->get_id(), this->get_label(), this->get_type());
+      Console.WriteLine("Place %d label %s type %c ", this.get_id(), this.get_label(), this.get_type());
       for (int g = 0; g < GRADES; ++g)
       {
-        fprintf(Global::Statusfp, "%d students in grade %d | ", this->students_in_grade[g], g);
+        Console.WriteLine("%d students in grade %d | ", this.students_in_grade[g], g);
       }
-      fprintf(Global::Statusfp, "\n");
-      fflush(Global::Statusfp);
+      Console.WriteLine("\n");
+      
     }
 
-    int School::get_number_of_rooms()
+    int get_number_of_rooms()
     {
       int total_rooms = 0;
-      if (School::school_classroom_size == 0)
+      if (school_classroom_size == 0)
       {
         return 0;
       }
       for (int a = 0; a < GRADES; ++a)
       {
-        int n = this->students_in_grade[a];
+        int n = this.students_in_grade[a];
         if (n == 0)
         {
           continue;
         }
-        int rooms = n / School::school_classroom_size;
-        if (n % School::school_classroom_size)
+        int rooms = n / school_classroom_size;
+        if (n % school_classroom_size)
         {
           rooms++;
         }
@@ -472,98 +471,98 @@
       return total_rooms;
     }
 
-    void School::setup_classrooms(Allocator<Classroom> &classroom_allocator)
+    void setup_classrooms(Allocator<Classroom> &classroom_allocator)
     {
-      if (School::school_classroom_size == 0)
+      if (school_classroom_size == 0)
       {
         return;
       }
 
       for (int a = 0; a < GRADES; ++a)
       {
-        int n = this->students_in_grade[a];
+        int n = this.students_in_grade[a];
         if (n == 0)
         {
           continue;
         }
-        int rooms = n / School::school_classroom_size;
-        if (n % School::school_classroom_size)
+        int rooms = n / school_classroom_size;
+        if (n % school_classroom_size)
         {
           rooms++;
         }
 
-        FRED_STATUS(1, "School %d %s grade %d number %d rooms %d\n", this->get_id(), this->get_label(), a, n, rooms);
+        FredUtils.Status(1, "School %d %s grade %d number %d rooms %d\n", this.get_id(), this.get_label(), a, n, rooms);
 
         for (int c = 0; c < rooms; ++c)
         {
           char new_label[128];
-          sprintf(new_label, "%s-%02d-%02d", this->get_label(), a, c + 1);
+          sprintf(new_label, "%s-%02d-%02d", this.get_label(), a, c + 1);
 
           Classroom* clsrm = new (classroom_allocator.get_free()) Classroom(new_label,
                       Place::SUBTYPE_NONE,
-                      this->get_longitude(),
-                      this->get_latitude());
-      clsrm->set_school(this);
+                      this.get_longitude(),
+                      this.get_latitude());
+      clsrm.set_school(this);
 
-      this->classrooms[a].push_back(clsrm);
+      this.classrooms[a].push_back(clsrm);
     }
   }
 }
 
-Place* School::select_classroom_for_student(Person* per)
+public Place select_classroom_for_student(Person per)
 {
-  if (School::school_classroom_size == 0)
+  if (school_classroom_size == 0)
   {
-    return NULL;
+    return null;
   }
-  int grade = per->get_age();
+  int grade = per.get_age();
   if (GRADES <= grade)
   {
     grade = GRADES - 1;
   }
-  if (Global::Verbose > 1)
+  if (Global.Verbose > 1)
   {
-    fprintf(Global::Statusfp, "assign classroom for student %d in school %d %s grade %d\n",
-      per->get_id(), this->get_id(), this->get_label(), grade);
-    fflush(Global::Statusfp);
+    Console.WriteLine("assign classroom for student %d in school %d %s grade %d\n",
+      per.get_id(), this.get_id(), this.get_label(), grade);
+    
   }
 
-  if (this->classrooms[grade].size() == 0)
+  if (this.classrooms[grade].size() == 0)
   {
-    return NULL;
+    return null;
   }
 
   // pick next classroom for this grade, round-robin
-  int room = this->next_classroom[grade];
-  if (room < (int)this->classrooms[grade].size() - 1)
+  int room = this.next_classroom[grade];
+  if (room < (int)this.classrooms[grade].size() - 1)
   {
-    this->next_classroom[grade]++;
+    this.next_classroom[grade]++;
   }
   else
   {
-    this->next_classroom[grade] = 0;
+    this.next_classroom[grade] = 0;
   }
 
   // pick next classroom for this grade at random
   // int room = Random::draw_random_int(0,(classrooms[grade].size()-1));
 
-  if (Global::Verbose > 1)
+  if (Global.Verbose > 1)
   {
-    fprintf(Global::Statusfp, "room = %d %s %d\n", room, this->classrooms[grade][room]->get_label(),
-      this->classrooms[grade][room]->get_id());
-    fflush(Global::Statusfp);
+    Console.WriteLine("room = %d %s %d\n", room, this.classrooms[grade][room].get_label(),
+      this.classrooms[grade][room].get_id());
+    
   }
-  return this->classrooms[grade][room];
+  return this.classrooms[grade][room];
 }
 
-void School::print_size_distribution()
+void print_size_distribution()
 {
   for (int g = 1; g < GRADES; ++g)
   {
-    if (this->orig_students_in_grade[g] > 0)
+    if (this.orig_students_in_grade[g] > 0)
     {
       printf("SCHOOL %s grade %d orig %d current %d\n",
-       this->get_label(), g, this->orig_students_in_grade[g], this->students_in_grade[g]);
+       this.get_label(), g, this.orig_students_in_grade[g], this.students_in_grade[g]);
     }
   }
   fflush(stdout);
@@ -572,20 +571,20 @@ void School::print_size_distribution()
 
 int get_orig_students_in_grade(int grade)
     {
-      if (grade < 0 || this->max_grade < grade)
+      if (grade < 0 || this.max_grade < grade)
       {
         return 0;
       }
-      return this->orig_students_in_grade[grade];
+      return this.orig_students_in_grade[grade];
     }
 
     int get_students_in_grade(int grade)
     {
-      if (grade < 0 || this->max_grade < grade)
+      if (grade < 0 || this.max_grade < grade)
       {
         return 0;
       }
-      return this->students_in_grade[grade];
+      return this.students_in_grade[grade];
     }
 
     int get_classrooms_in_grade(int grade)
@@ -594,14 +593,14 @@ int get_orig_students_in_grade(int grade)
       {
         return 0;
       }
-      return static_cast<int>(this->classrooms[grade].size());
+      return static_cast<int>(this.classrooms[grade].size());
     }
     int get_number_of_students()
     {
       int n = 0;
       for (int grade = 1; grade < GRADES; ++grade)
       {
-        n += this->students_in_grade[grade];
+        n += this.students_in_grade[grade];
       }
       return n;
     }
@@ -609,7 +608,7 @@ int get_orig_students_in_grade(int grade)
     int get_orig_number_of_students() const {
     int n = 0;
     for(int grade = 1; grade<GRADES; ++grade) {
-      n += this->orig_students_in_grade[grade];
+      n += this.orig_students_in_grade[grade];
     }
     return n;
   }
@@ -621,49 +620,49 @@ static int get_max_classroom_size()
 
 void set_county(int _county_index)
 {
-  this->county_index = _county_index;
+  this.county_index = _county_index;
 }
 
 int get_county()
 {
-  return this->county_index;
+  return this.county_index;
 }
 
 void set_income_quartile(int _income_quartile)
 {
-  if (_income_quartile < Global::Q1 || _income_quartile > Global::Q4)
+  if (_income_quartile < Global.Q1 || _income_quartile > Global.Q4)
   {
-    this->income_quartile = -1;
+    this.income_quartile = -1;
   }
   else
   {
-    this->income_quartile = _income_quartile;
+    this.income_quartile = _income_quartile;
   }
 }
 
 int get_income_quartile() const {
-    return this->income_quartile;
+    return this.income_quartile;
   }
 
 void prepare_income_quartile_pop_size()
 {
-  if (Global::Report_Childhood_Presenteeism)
+  if (Global.Report_Childhood_Presenteeism)
   {
     int size = get_size();
     // update population stats based on income quartile of this school
-    if (this->income_quartile == Global::Q1)
+    if (this.income_quartile == Global.Q1)
     {
       pop_income_Q1 += size;
     }
-    else if (this->income_quartile == Global::Q2)
+    else if (this.income_quartile == Global.Q2)
     {
       pop_income_Q2 += size;
     }
-    else if (this->income_quartile == Global::Q3)
+    else if (this.income_quartile == Global.Q3)
     {
       pop_income_Q3 += size;
     }
-    else if (this->income_quartile == Global::Q4)
+    else if (this.income_quartile == Global.Q4)
     {
       pop_income_Q4 += size;
     }
@@ -696,7 +695,7 @@ static int get_school_pop_income_quartile_4()
   return pop_income_Q4;
 }
 
-static char* get_school_closure_policy()
+static string get_school_closure_policy()
 {
   return school_closure_policy;
 }

@@ -201,7 +201,7 @@ namespace Fred
           {
             if (Global.IsHospitalsEnabled && person.is_hospitalized() && person.get_permanent_household() != null)
             {
-              hh = person->get_permanent_household();
+              hh = person.get_permanent_household();
             }
           }
           int row = this.GetRow(hh.get_latitude());
@@ -223,7 +223,7 @@ namespace Fred
         FILE* fp = Utils::fred_open_file(filename);
         if (fp == null)
         {
-          Utils::fred_abort("Help! Can't open patch_pop_file %s\n", filename);
+          FredUtils.Abort("Help! Can't open patch_pop_file %s\n", filename);
         }
         printf("reading %s\n", filename);
         while (fscanf(fp, "%d %d %d ", &c, &r, &n) == 3)
@@ -231,7 +231,7 @@ namespace Fred
           Regional_Patch* patch = get_patch_with_global_coords(r, c);
           if (patch != null)
           {
-            patch->set_max_popsize(n);
+            patch.set_max_popsize(n);
           }
         }
         fclose(fp);

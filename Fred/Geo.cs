@@ -20,89 +20,120 @@ namespace Fred
     public static double km_per_deg_longitude = MEAN_US_KM_PER_DEG_LON;
     public static double km_per_deg_latitude = MEAN_US_KM_PER_DEG_LAT;
 
-    public static void SetKmPerDegree(double lat)
+    /**
+     * Sets the kilometers per degree longitude at a given latitiude
+     *
+     * @param lat the latitude to set KM / degree
+     */
+    public static void set_km_per_degree(FredGeo lat)
     {
-      lat *= DEG_TO_RAD;
-      double cosine = Math.Cos(lat);
-      km_per_deg_longitude = cosine * KM_PER_DEG_LAT;
-      km_per_deg_latitude = KM_PER_DEG_LAT;
+      var latVal = lat.Value * Geo.DEG_TO_RAD;
+      double cosine = Math.Cos(latVal);
+      Geo.km_per_deg_longitude = cosine * Geo.KM_PER_DEG_LAT;
+      Geo.km_per_deg_latitude = Geo.KM_PER_DEG_LAT;
     }
 
-    public static double HaversineDistance(double lon1, double lat1, double lon2, double lat2)
+    /**
+     * @param lon1
+     * @param lat1
+     * @param lon2
+     * @param lat2
+     *
+     * @return the haversine distance between the two points on the Earth's surface
+     */
+    public static double haversine_distance(FredGeo lon1, FredGeo lat1, FredGeo lon2, FredGeo lat2)
     {
       // convert to radians
-      lat1 *= DEG_TO_RAD;
-      lon1 *= DEG_TO_RAD;
-      lat2 *= DEG_TO_RAD;
-      lon2 *= DEG_TO_RAD;
-      double latH = Math.Sin(0.5 * (lat2 - lat1));
+      var lat1Val = lat1.Value * DEG_TO_RAD;
+      var lon1Val = lon1.Value * DEG_TO_RAD;
+      var lat2Val = lat2.Value * DEG_TO_RAD;
+      var lon2Val = lon2.Value * DEG_TO_RAD;
+      var latH = Math.Sin(0.5 * (lat2Val - lat1Val));
       latH *= latH;
-      double lonH = Math.Sin(0.5 * (lon2 - lon1));
+      var lonH = Math.Sin(0.5 * (lon2Val - lon1Val));
       lonH *= lonH;
-      double a = latH + Math.Cos(lat1) * Math.Cos(lat2) * lonH;
+      double a = latH + Math.Cos(lat1Val) * Math.Cos(lat2Val) * lonH;
       double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
       double dist = EARTH_RADIUS * c;
       return dist;
     }
 
-    public static double SphericalCosineDistance(double lon1, double lat1, double lon2, double lat2)
+    /**
+     * @param lon1
+     * @param lat1
+     * @param lon2
+     * @param lat2
+     *
+     * @return the spherical cosine distance between the two points on the Earth's surface
+     */
+    public static double spherical_cosine_distance(FredGeo lon1, FredGeo lat1, FredGeo lon2, FredGeo lat2)
     {
       // convert to radians
-      lat1 *= DEG_TO_RAD;
-      lon1 *= DEG_TO_RAD;
-      lat2 *= DEG_TO_RAD;
-      lon2 *= DEG_TO_RAD;
-      return Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lon2 - lon1)) * EARTH_RADIUS;
+      var lat1Val = lat1.Value * DEG_TO_RAD;
+      var lon1Val = lon1.Value * DEG_TO_RAD;
+      var lat2Val = lat2.Value * DEG_TO_RAD;
+      var lon2Val = lon2.Value * DEG_TO_RAD;
+      return Math.Acos(Math.Sin(lat1Val) * Math.Sin(lat2Val) + Math.Cos(lat1Val) * Math.Cos(lat2Val) * Math.Cos(lon2Val - lon1Val)) * EARTH_RADIUS;
     }
 
-    public static double SphericalProjectionDistance(double lon1, double lat1, double lon2, double lat2)
+    /**
+     * @param lon1
+     * @param lat1
+     * @param lon2
+     * @param lat2
+     *
+     * @return the spherical projection distance between the two points on the Earth's surface
+     */
+    public static double spherical_projection_distance(FredGeo lon1, FredGeo lat1, FredGeo lon2, FredGeo lat2)
     {
       // convert to radians
-      lat1 *= DEG_TO_RAD;
-      lon1 *= DEG_TO_RAD;
-      lat2 *= DEG_TO_RAD;
-      lon2 *= DEG_TO_RAD;
-      double dlat = (lat2 - lat1);
+      var lat1Val = lat1.Value * DEG_TO_RAD;
+      var lon1Val = lon1.Value * DEG_TO_RAD;
+      var lat2Val = lat2.Value * DEG_TO_RAD;
+      var lon2Val = lon2.Value * DEG_TO_RAD;
+      double dlat = (lat2Val - lat1Val);
       dlat *= dlat;
-      double dlon = (lon2 - lon1);
-      double tmp = Math.Cos(0.5 * (lat1 + lat2)) * dlon;
+      double dlon = lon2Val - lon1Val;
+      double tmp = Math.Cos(0.5 * (lat1Val + lat2Val)) * dlon;
       tmp *= tmp;
       return EARTH_RADIUS * Math.Sqrt(dlat + tmp);
     }
 
-    public static double GetX(double lon)
+    public static double get_x(FredGeo lon)
     {
-      return (lon + 180.0) * km_per_deg_longitude;
+      return (lon.Value + 180.0) * km_per_deg_longitude;
     }
 
-    public static double GetY(double lat)
+    public static double get_y(FredGeo lat)
     {
-      return (lat + 90.0) * km_per_deg_latitude;
-    }
-    public static double GetLongitude(double x)
-    {
-      return x / km_per_deg_longitude - 180.0;
-    }
-    public static double GetLatitude(double y)
-    {
-      return y / km_per_deg_latitude - 90.0;
+      return (lat.Value + 90.0) * km_per_deg_latitude;
     }
 
-    public static double XYDistance(double lat1, double lon1, double lat2, double lon2)
+    public static FredGeo get_longitude(double x)
     {
-      double x1 = GetX(lon1); double y1 = GetY(lat1);
-      double x2 = GetX(lon2); double y2 = GetY(lat2);
+      return new FredGeo { Value = (double)(x / km_per_deg_longitude - 180.0) };
+    }
+
+    public static FredGeo get_latitude(double y)
+    {
+      return new FredGeo { Value = (double)(y / km_per_deg_latitude - 90.0) };
+    }
+
+    public static double xy_distance(FredGeo lat1, FredGeo lon1, FredGeo lat2, FredGeo lon2)
+    {
+      double x1 = get_x(lon1); double y1 = get_y(lat1);
+      double x2 = get_x(lon2); double y2 = get_y(lat2);
       return Math.Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
     }
 
-    public static double XSizeToDegreeLongitude(double xsize)
+    public static double xsize_to_degree_longitude(double xsize)
     {
-      return xsize / km_per_deg_longitude;
+      return (xsize / km_per_deg_longitude);
     }
 
-    public static double YSizeToDegreeLatitude(double ysize)
+    public static double ysize_to_degree_latitude(double ysize)
     {
-      return ysize / km_per_deg_latitude;
+      return (ysize / km_per_deg_latitude);
     }
   }
 }

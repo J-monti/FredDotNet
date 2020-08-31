@@ -4,29 +4,33 @@ namespace Fred
 {
   public class Decision
   {
+    protected string name;
+    protected string type;
+    protected Policy policy;
 
-    public Decision() { }
+    public Decision()
+    {
+      this.name = string.Empty;
+      this.type = string.Empty;
+    }
 
     public Decision(Policy policy)
     {
-      this.Policy = policy;
-      this.Name = "Generic Decision";
-      this.Type = "Generic";
+      this.policy = policy;
+      this.name = "Generic Decision";
+      this.type = "Generic";
     }
+    /**
+     * @return the name of this Decision
+     */
+    public string get_name() { return name; }
 
-    /// <summary>
-    /// Gets the name of the decision.
-    /// </summary>
-    public string Name { get; protected set; }
+    /**
+     * @return the type of this Decision
+     */
+    public string get_type() { return type; }
 
-    /// <summary>
-    /// Gets the type of the decision.
-    /// </summary>
-    public string Type { get; protected set; }
-
-    public Policy Policy { get; protected set; }
-
-    public virtual int Evaluate (Person person, int disease, DateTime currentDay)
+    public virtual int evaluate(Person person, int disease, int current_day)
     {
       return 0;
     }

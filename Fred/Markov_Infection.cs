@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Fred
 {
   public class Markov_Infection : Infection
   {
-    public Markov_Infection(Disease _disease, Person _infector, Person _host, MixingGroup _mixing_group, DateTime day)
+    private int state;
+
+    public Markov_Infection(Disease _disease, Person _infector, Person _host, Mixing_Group _mixing_group, int day)
       : base(_disease, _infector, _host, _mixing_group, day)
     {
       this.infectious_start_date = -1;
@@ -18,17 +18,14 @@ namespace Fred
       this.will_develop_symptoms = false;
     }
 
-    void setup()
+    public override void setup()
     {
-
       // Infection::setup();
-
-      FRED_VERBOSE(1, "setup entered\n");
-
+      Utils.FRED_VERBOSE(1, "Markov_Infection::setup entered\n");
       // initialize Markov specific-variables here:
 
       this.state = this.disease.get_natural_history().get_initial_state();
-      printf("MARKOV INIT state %d\n", this.state);
+      Console.WriteLine("MARKOV INIT state {0}", this.state);
       if (this.get_infectivity(this.exposure_date) > 0.0)
       {
         this.infectious_start_date = this.exposure_date;
@@ -41,27 +38,35 @@ namespace Fred
       }
     }
 
-    double get_infectivity(int day)
+    public override void update(int day)
+    {
+      Utils.FRED_VERBOSE(1, "update Markov INFECTION on day {0} for host {1}", day, host.get_id());
+      // put daily update here
+    }
+
+    public override double get_infectivity(int day)
     {
       return (this.disease.get_natural_history().get_infectivity(this.state));
     }
 
-    double get_symptoms(int day)
+    public override double get_symptoms(int day)
     {
       return (this.disease.get_natural_history().get_symptoms(this.state));
     }
 
-    bool is_fatal(int day)
+    public override bool is_fatal(int day)
     {
       return (this.disease.get_natural_history().is_fatal(this.state));
     }
 
-    void update(int day)
+    public override int get_state()
     {
+      return this.state;
+    }
 
-      FRED_VERBOSE(1, "update Markov INFECTION on day %d for host %d\n", day, host.get_id());
-
-      // put daily update here
+    public override void set_state(int _state)
+    {
+      this.state = _state;
     }
   }
 }

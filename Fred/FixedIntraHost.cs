@@ -13,7 +13,7 @@ namespace Fred
       char s[80];
       char disease_name[80];
       int numProfiles;
-      strcpy(disease_name, disease->get_disease_name());
+      strcpy(disease_name, disease.get_disease_name());
 
       sprintf(s, "%s_infectivity_profile_probabilities", disease_name);
       Params::get_param(s, &numProfiles);
@@ -35,7 +35,7 @@ namespace Fred
 
     Trajectory* FixedIntraHost::get_trajectory()
     {
-      double r = Random::draw_random();
+      double r = FredRandom.NextDouble();
       int index = 0;
       vector<double> :: iterator it;
 
@@ -46,8 +46,8 @@ namespace Fred
 
       Loads* loads;
       loads = new Loads;
-      loads->clear();
-      loads->insert(pair<int, double>(1, 1.0));
+      loads.clear();
+      loads.insert(pair<int, double>(1, 1.0));
 
       Trajectory* trajectory = new Trajectory();
 
@@ -55,10 +55,10 @@ namespace Fred
       map<int, double> :: iterator lit;
 
       // Weight infectivity values of each strain by their corresponding load
-      for (lit = loads->begin(); lit != loads->end(); lit++)
+      for (lit = loads.begin(); lit != loads.end(); lit++)
       {
-        int strain = lit->first;
-        double load = lit->second;
+        int strain = lit.first;
+        double load = lit.second;
 
         vector<double> infectivity;
         vector<double> :: iterator infIt;

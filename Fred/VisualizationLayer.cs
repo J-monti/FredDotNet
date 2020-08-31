@@ -1,230 +1,219 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Fred
 {
   public class VisualizationLayer : AbstractGrid
   {
+    private bool gaia_mode;
+    private bool household_mode;
+    private bool census_tract_mode;
     public VisualizationLayer()
     {
       this.Rows = 0;
       this.Cols = 0;
-
-      Params::get_param_from_string("gaia_visualization_mode", &this.gaia_mode);
-      Params::get_param_from_string("household_visualization_mode", &this.household_mode);
-      Params::get_param_from_string("census_tract_visualization_mode", &this.census_tract_mode);
-
-      this.households.clear();
+      this.households = new List<Household>();
+      this.gaia_mode = FredParameters.GaiaMode;
+      this.household_mode = FredParameters.HouseholdMode;
+      this.census_tract_mode = FredParameters.CensusTractMode;
 
       if (this.gaia_mode)
       {
         // create visualization grid
-        Regional_Layer* base_grid = Global::Simulation_Region;
-        this.min_lat = base_grid.get_min_lat();
-        this.min_lon = base_grid.get_min_lon();
-        this.max_lat = base_grid.get_max_lat();
-        this.max_lon = base_grid.get_max_lon();
-        this.min_x = base_grid.get_min_x();
-        this.min_y = base_grid.get_min_y();
-        this.max_x = base_grid.get_max_x();
-        this.max_y = base_grid.get_max_y();
+        var base_grid = Global.SimulationRegion;
+        this.MinLat = base_grid.MinLat;
+        this.MinLon = base_grid.MinLon;
+        this.MaxLat = base_grid.MaxLat;
+        this.MaxLon = base_grid.MaxLon;
+        this.MinX = base_grid.MinX;
+        this.MinY = base_grid.MinY;
+        this.MaxX = base_grid.MaxX;
+        this.MaxY = base_grid.MaxY;
 
         // determine patch size for this layer
-        Params::get_param_from_string("visualization_grid_size", &this.max_grid_size);
-        if (this.max_x - this.min_x > this.max_y - this.min_y)
+        var maxGridSize = FredParameters.VisualizationGridSize;
+        if (this.MaxX - this.MinX > this.MaxY - this.MinY)
         {
-          this.patch_size = (this.max_x - this.min_x) / (double)this.max_grid_size;
+          this.PatchSize = (this.MaxX - this.MinX) / (double)maxGridSize;
         }
         else
         {
-          this.patch_size = (this.max_y - this.min_y) / (double)this.max_grid_size;
+          this.PatchSize = (this.MaxY - this.MinY) / (double)maxGridSize;
         }
-        this.rows = (double)(this.max_y - this.min_y) / this.patch_size;
-        if (this.min_y + this.rows * this.patch_size < this.max_y)
+        this.Rows = (int)((this.MaxY - this.MinY) / this.PatchSize);
+        if (this.MinY + this.Rows * this.PatchSize < this.MaxY)
         {
-          this.rows++;
+          this.Rows++;
         }
-        this.cols = (double)(this.max_x - this.min_x) / this.patch_size;
-        if (this.min_x + this.cols * this.patch_size < this.max_x)
+        this.Cols = (int)((this.MaxX - this.MinX) / this.PatchSize);
+        if (this.MinX + this.Cols * this.PatchSize < this.MaxX)
         {
-          this.cols++;
-        }
-
-        if (Global::Verbose > 0)
-        {
-          fprintf(Global::Statusfp, "Visualization_Layer min_lon = %f\n", this.min_lon);
-          fprintf(Global::Statusfp, "Visualization_Layer min_lat = %f\n", this.min_lat);
-          fprintf(Global::Statusfp, "Visualization_Layer max_lon = %f\n", this.max_lon);
-          fprintf(Global::Statusfp, "Visualization_Layer max_lat = %f\n", this.max_lat);
-          fprintf(Global::Statusfp, "Visualization_Layer rows = %d  this.cols = %d\n", this.rows, this.cols);
-          fprintf(Global::Statusfp, "Visualization_Layer min_x = %f  min_y = %f\n", this.min_x, this.min_y);
-          fprintf(Global::Statusfp, "Visualization_Layer max_x = %f  max_y = %f\n", this.max_x, this.max_y);
-          fflush(Global::Statusfp);
+          this.Cols++;
         }
 
-        this.grid = new Visualization_Patch*[this.rows];
-        for (int i = 0; i < this.rows; ++i)
+        if (Global.Verbose > 0)
         {
-          this.grid[i] = new Visualization_Patch[this.cols];
+          Console.WriteLine("Visualization_Layer min_lon = {0}", this.MinLon);
+          Console.WriteLine("Visualization_Layer min_lat = {0}", this.MinLat);
+          Console.WriteLine("Visualization_Layer max_lon = {0}", this.MaxLon);
+          Console.WriteLine("Visualization_Layer max_lat = {0}", this.MaxLat);
+          Console.WriteLine("Visualization_Layer rows  = {0}  cols  = {1}", this.Rows, this.Cols);
+          Console.WriteLine("Visualization_Layer min_x = {0}  min_y = {1}", this.MinX, this.MinY);
+          Console.WriteLine("Visualization_Layer max_x = {0}  max_y = {1}", this.MaxX, this.MaxY);
         }
 
-        for (int i = 0; i < this.rows; ++i)
+        this.grid = new VisualizationPatch[this.Rows, this.Cols];
+        for (int i = 0; i < this.Rows; ++i)
         {
-          for (int j = 0; j < this.cols; ++j)
+          for (int j = 0; j < this.Cols; ++j)
           {
-            this.grid[i][j].setup(i, j, this.patch_size, this.min_x, this.min_y);
+            this.grid[i,j].setup(i, j, this.PatchSize, this.MinX, this.MinY);
           }
         }
       }
     }
 
-    Visualization_Patch* Visualization_Layer::get_patch(int row, int col)
+    public List<Household> households { get; }
+
+    public VisualizationPatch[,] grid { get; private set; }
+
+    public VisualizationPatch get_patch(int row, int col)
     {
-      if (row >= 0 && col >= 0 && row < this.rows && col < this.cols)
+      if (row >= 0 && col >= 0 && row < this.Rows && col < this.Cols)
       {
-        return &(this.grid[row][col]);
+        return this.grid[row, col];
       }
-      else
-      {
-        return NULL;
-      }
+
+      return null;
     }
 
-    Visualization_Patch* Visualization_Layer::get_patch(fred::geo lat, fred::geo lon)
+    public VisualizationPatch get_patch(double lat, double lon)
     {
-      int row = get_row(lat);
-      int col = get_col(lon);
+      int row = this.GetRow(lat);
+      int col = this.GetCol(lon);
       return get_patch(row, col);
     }
 
-    Visualization_Patch* Visualization_Layer::get_patch(double x, double y)
+    public VisualizationPatch get_patch_geo(double x, double y)
     {
-      int row = get_row(y);
-      int col = get_col(x);
+      int row = this.GetRowGeo(y);
+      int col = this.GetColGeo(x);
       return get_patch(row, col);
     }
 
-    Visualization_Patch* Visualization_Layer::select_random_patch()
+    public VisualizationPatch select_random_patch()
     {
-      int row = Random::draw_random_int(0, this.rows - 1);
-      int col = Random::draw_random_int(0, this.cols - 1);
-      return &(this.grid[row][col]);
+      int row = FredRandom.Next(0, this.Rows - 1);
+      int col = FredRandom.Next(0, this.Cols - 1);
+      return this.grid[row, col];
     }
 
-    void Visualization_Layer::quality_control()
+    private void quality_control()
     {
-      if (Global::Verbose)
+      if (Global.Verbose > 0)
       {
-        fprintf(Global::Statusfp, "visualization grid quality control check\n");
-        fflush(Global::Statusfp);
+        Console.WriteLine("visualization grid quality control check");
       }
 
       if (this.gaia_mode)
       {
-        for (int row = 0; row < this.rows; ++row)
+        for (int row = 0; row < this.Rows; ++row)
         {
-          for (int col = 0; col < this.cols; ++col)
+          for (int col = 0; col < this.Cols; ++col)
           {
-            this.grid[row][col].quality_control();
+            this.grid[row,col].quality_control();
           }
         }
-        if (Global::Verbose > 1 and this.rows > 0) {
-          char filename[FRED_STRING_SIZE];
-          sprintf(filename, "%s/visualization_grid.dat", Global::Simulation_directory);
-          FILE* fp = fopen(filename, "w");
-          for (int row = 0; row < this.rows; ++row)
+        if (Global.Verbose > 1 && this.Rows > 0) {
+          using (var writer = new StreamWriter(Path.Combine(Global.SimulationDirectory, "visualization_grid.dat")))
           {
-            if (row % 2)
+            for (int row = 0; row < this.Rows; ++row)
             {
-              for (int col = this.cols - 1; col >= 0; --col)
+              if (row % 2 != 0)
               {
-                double x = this.grid[row][col].get_center_x();
-                double y = this.grid[row][col].get_center_y();
-                fprintf(fp, "%f %f\n", x, y);
+                for (int col = this.Cols - 1; col >= 0; --col)
+                {
+                  double x = this.grid[row, col].CenterX;
+                  double y = this.grid[row, col].CenterY;
+                  writer.WriteLine("{0} {1}", x, y);
+                }
               }
-            }
-            else
-            {
-              for (int col = 0; col < this.cols; ++col)
+              else
               {
-                double x = this.grid[row][col].get_center_x();
-                double y = this.grid[row][col].get_center_y();
-                fprintf(fp, "%f %f\n", x, y);
+                for (int col = 0; col < this.Cols; ++col)
+                {
+                  double x = this.grid[row, col].CenterX;
+                  double y = this.grid[row, col].CenterY;
+                  writer.WriteLine("{0} {1}", x, y);
+                }
               }
             }
           }
-          fclose(fp);
         }
       }
 
-      if (Global::Verbose)
+      if (Global.Verbose > 0)
       {
-        fprintf(Global::Statusfp, "visualization grid quality control finished\n");
-        fflush(Global::Statusfp);
+        Console.WriteLine("visualization grid quality control finished\n");
+        
       }
     }
 
-    void Visualization_Layer::initialize()
+    public void initialize()
     {
-
-      char vis_top_dir[FRED_STRING_SIZE];
-
-      sprintf(vis_top_dir, "%s/VIS", Global::Simulation_directory);
+      string vis_top_dir = Path.Combine(Global.SimulationDirectory, "VIS");
       create_data_directories(vis_top_dir);
 
       // create visualization data directory
       if (this.gaia_mode)
       {
-        sprintf(vis_top_dir, "%s/GAIA", Global::Simulation_directory);
+        vis_top_dir = Path.Combine(Global.SimulationDirectory, "GAIA");
         create_data_directories(vis_top_dir);
         // create GAIA setup file
-        char setup_file[FRED_STRING_SIZE];
-        sprintf(setup_file, "%s/grid.txt", vis_top_dir);
-        FILE* fp = fopen(setup_file, "w");
-        fprintf(fp, "rows = %d\n", this.rows);
-        fprintf(fp, "cols = %d\n", this.cols);
-        fprintf(fp, "min_lat = %f\n", this.min_lat);
-        fprintf(fp, "min_lon = %f\n", this.min_lon);
-        fprintf(fp, "patch_x_size = %f\n", Geo::xsize_to_degree_longitude(patch_size));
-        fprintf(fp, "patch_y_size = %f\n", Geo::ysize_to_degree_latitude(patch_size));
-        fclose(fp);
+        var setup_file = Path.Combine(vis_top_dir, "grid.txt");
+        using (var writer = new StreamWriter(setup_file))
+        {
+          writer.WriteLine("rows = {0}", this.Rows);
+          writer.WriteLine("cols = {0}", this.Cols);
+          writer.WriteLine("min_lat = {0}", this.MinLat);
+          writer.WriteLine("min_lon = {0}", this.MinLon);
+          writer.WriteLine("patch_x_size = {0}", Geo.XSizeToDegreeLongitude(this.PatchSize));
+          writer.WriteLine("patch_y_size = {0}", Geo.YSizeToDegreeLatitude(this.PatchSize));
+        }
       }
     }
 
-
-    void Visualization_Layer::create_data_directories(char* vis_top_dir)
+    private void create_data_directories(string vis_top_dir)
     {
-      char vis_run_dir[FRED_STRING_SIZE];
-      char vis_dis_dir[FRED_STRING_SIZE];
-      char vis_var_dir[FRED_STRING_SIZE];
-
       // make top level data directory
-      Utils::fred_make_directory(vis_top_dir);
-
+      Directory.CreateDirectory(vis_top_dir);
       // make directory for this run
-      sprintf(vis_run_dir, "%s/run%d", vis_top_dir, Global::Simulation_run_number);
-      Utils::fred_make_directory(vis_run_dir);
+      var vis_run_dir = Path.Combine(vis_top_dir, $"run{Global.SimulationRunNumber}");
+      Directory.CreateDirectory(vis_run_dir);
+      var vis_dis_dir = string.Empty;
+      var vis_var_dir = string.Empty;
 
       // create sub directories for diseases and output vars
-      for (int d = 0; d < Global::Diseases.get_number_of_diseases(); ++d)
+      for (int d = 0; d < Global.Diseases.Count; ++d)
       {
-        sprintf(vis_dis_dir, "%s/dis%d", vis_run_dir, d);
-        Utils::fred_make_directory(vis_dis_dir);
+        vis_dis_dir = $"{vis_run_dir}/dis{d}";
+        Directory.CreateDirectory(vis_dis_dir);
 
         if (d == 0)
         {
           // print out household locations
-          char filename[256];
-          sprintf(filename, "%s/households.txt", vis_dis_dir);
-          FILE* fp = fopen(filename, "w");
-          int num_households = this.households.size();
-          for (int i = 0; i < num_households; ++i)
+          var filename = $"{vis_dis_dir}/households.txt";
+          using (var writer = new StreamWriter(filename))
           {
-            Place* h = this.households[i];
-            fprintf(fp, "%f %f %3d %s\n", h.get_latitude(), h.get_longitude(), h.get_size(), h.get_label());
+            int num_households = this.households.Count;
+            for (int i = 0; i < num_households; ++i)
+            {
+              var h = this.households[i];
+              writer.WriteLine("{0} {1} {2} {3}", h.get_latitude(), h.get_longitude(), h.get_size(), h.Label);
+            }
           }
-          fclose(fp);
         }
         else
         {
@@ -233,103 +222,103 @@ namespace Fred
           sprintf(cmd, "ln -s %s/dis0/households.txt %s/households.txt", vis_run_dir, vis_dis_dir);
           if (system(cmd) != 0)
           {
-            Utils::fred_abort("Error using system command \"%s\"\n", cmd);
+            FredUtils.Abort("Error using system command \"%s\"\n", cmd);
           }
         }
 
         // create directories for specific output variables
         sprintf(vis_var_dir, "%s/I", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/Is", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/C", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/Cs", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/P", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/N", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/R", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/Vec", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/D", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/CF", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
         sprintf(vis_var_dir, "%s/TCF", vis_dis_dir);
-        Utils::fred_make_directory(vis_var_dir);
+        Directory.CreateDirectory(vis_var_dir);
 
-        if (this.household_mode && Global::Enable_HAZEL)
+        if (this.household_mode && Global.IsHazelEnabled)
         {
           sprintf(vis_var_dir, "%s/HH_primary_hc_unav", vis_dis_dir);
-          Utils::fred_make_directory(vis_var_dir);
+          Directory.CreateDirectory(vis_var_dir);
           sprintf(vis_var_dir, "%s/HH_accept_insr_hc_unav", vis_dis_dir);
-          Utils::fred_make_directory(vis_var_dir);
+          Directory.CreateDirectory(vis_var_dir);
           sprintf(vis_var_dir, "%s/HH_hc_unav", vis_dis_dir);
-          Utils::fred_make_directory(vis_var_dir);
+          Directory.CreateDirectory(vis_var_dir);
         }
 
-        if (this.census_tract_mode && Global::Enable_HAZEL)
+        if (this.census_tract_mode && Global.IsHazelEnabled)
         {
           sprintf(vis_var_dir, "%s/HC_DEFICIT", vis_dis_dir);
-          Utils::fred_make_directory(vis_var_dir);
+          Directory.CreateDirectory(vis_var_dir);
         }
       }
     }
 
 
-    void Visualization_Layer::print_visualization_data(int day)
+    void print_visualization_data(int day)
     {
       if (this.census_tract_mode)
       {
-        for (int disease_id = 0; disease_id < Global::Diseases.get_number_of_diseases(); ++disease_id)
+        for (int disease_id = 0; disease_id < Global.Diseases.Count; ++disease_id)
         {
           char dir[FRED_STRING_SIZE];
-          sprintf(dir, "%s/VIS/run%d", Global::Simulation_directory, Global::Simulation_run_number);
-          print_census_tract_data(dir, disease_id, Global::OUTPUT_I, (char*)"I", day);
-          print_census_tract_data(dir, disease_id, Global::OUTPUT_Is, (char*)"Is", day);
-          print_census_tract_data(dir, disease_id, Global::OUTPUT_C, (char*)"C", day);
-          print_census_tract_data(dir, disease_id, Global::OUTPUT_Cs, (char*)"Cs", day);
-          print_census_tract_data(dir, disease_id, Global::OUTPUT_P, (char*)"P", day);
-          if (Global::Diseases.get_disease(disease_id).is_case_fatality_enabled())
+          sprintf(dir, "%s/VIS/run%d", Global.SimulationDirectory, Global.Simulation_run_number);
+          print_census_tract_data(dir, disease_id, Global.OUTPUT_I, (string)"I", day);
+          print_census_tract_data(dir, disease_id, Global.OUTPUT_Is, (string)"Is", day);
+          print_census_tract_data(dir, disease_id, Global.OUTPUT_C, (string)"C", day);
+          print_census_tract_data(dir, disease_id, Global.OUTPUT_Cs, (string)"Cs", day);
+          print_census_tract_data(dir, disease_id, Global.OUTPUT_P, (string)"P", day);
+          if (Global.Diseases.get_disease(disease_id).is_case_fatality_enabled())
           {
-            print_census_tract_data(dir, disease_id, Global::OUTPUT_CF, (char*)"CF", day);
-            print_census_tract_data(dir, disease_id, Global::OUTPUT_TCF, (char*)"TCF", day);
+            print_census_tract_data(dir, disease_id, Global.OUTPUT_CF, (string)"CF", day);
+            print_census_tract_data(dir, disease_id, Global.OUTPUT_TCF, (string)"TCF", day);
           }
         }
 
-        if (Global::Enable_HAZEL)
+        if (Global.IsHazelEnabled)
         {
           char dir[FRED_STRING_SIZE];
-          print_census_tract_data(dir, 0, Global::OUTPUT_HC_DEFICIT, (char*)"HC_DEFICIT", day);
+          print_census_tract_data(dir, 0, Global.OUTPUT_HC_DEFICIT, (string)"HC_DEFICIT", day);
         }
       }
 
       if (this.household_mode)
       {
-        for (int disease_id = 0; disease_id < Global::Diseases.get_number_of_diseases(); ++disease_id)
+        for (int disease_id = 0; disease_id < Global.Diseases.Count; ++disease_id)
         {
           char dir[FRED_STRING_SIZE];
-          sprintf(dir, "%s/VIS/run%d", Global::Simulation_directory, Global::Simulation_run_number);
+          sprintf(dir, "%s/VIS/run%d", Global.SimulationDirectory, Global.Simulation_run_number);
           print_household_data(dir, disease_id, day);
         }
       }
 
       if (this.gaia_mode)
       {
-        for (int disease_id = 0; disease_id < Global::Diseases.get_number_of_diseases(); ++disease_id)
+        for (int disease_id = 0; disease_id < Global.Diseases.Count; ++disease_id)
         {
           char dir[FRED_STRING_SIZE];
-          sprintf(dir, "%s/GAIA/run%d", Global::Simulation_directory, Global::Simulation_run_number);
-          print_output_data(dir, disease_id, Global::OUTPUT_I, (char*)"I", day);
-          print_output_data(dir, disease_id, Global::OUTPUT_Is, (char*)"Is", day);
-          print_output_data(dir, disease_id, Global::OUTPUT_C, (char*)"C", day);
-          print_output_data(dir, disease_id, Global::OUTPUT_Cs, (char*)"Cs", day);
-          print_output_data(dir, disease_id, Global::OUTPUT_P, (char*)"P", day);
+          sprintf(dir, "%s/GAIA/run%d", Global.SimulationDirectory, Global.Simulation_run_number);
+          print_output_data(dir, disease_id, Global.OUTPUT_I, (string)"I", day);
+          print_output_data(dir, disease_id, Global.OUTPUT_Is, (string)"Is", day);
+          print_output_data(dir, disease_id, Global.OUTPUT_C, (string)"C", day);
+          print_output_data(dir, disease_id, Global.OUTPUT_Cs, (string)"Cs", day);
+          print_output_data(dir, disease_id, Global.OUTPUT_P, (string)"P", day);
           print_population_data(dir, disease_id, day);
-          if (Global::Enable_Vector_Layer)
+          if (Global.Enable_Vector_Layer)
           {
             print_vector_data(dir, disease_id, day);
           }
@@ -337,7 +326,7 @@ namespace Fred
       }
     }
 
-    void Visualization_Layer::print_household_data(char* dir, int disease_id, int day)
+    void print_household_data(string dir, int disease_id, int day)
     {
 
       // household with new cases
@@ -400,7 +389,7 @@ namespace Fred
       }
       fclose(fp);
 
-      if (Global::Diseases.get_disease(disease_id).is_case_fatality_enabled())
+      if (Global.Diseases.get_disease(disease_id).is_case_fatality_enabled())
       {
         // household with current case fatalities
         sprintf(filename, "%s/dis%d/CF/households-%d.txt", dir, disease_id, day);
@@ -433,7 +422,7 @@ namespace Fred
       }
 
       // household with Healthcare availability deficiency
-      if (Global::Enable_HAZEL)
+      if (Global.IsHazelEnabled)
       {
 
         //!is_primary_healthcare_available
@@ -482,14 +471,14 @@ namespace Fred
     }
 
     /*
-      void Visualization_Layer::print_household_data(char* dir, int disease_id, int output_code, char* output_str, int day) {
+      void print_household_data(string dir, int disease_id, int output_code, string output_str, int day) {
       char filename[FRED_STRING_SIZE];
       sprintf(filename, "%s/dis%d/%s/households-%d.txt", dir, disease_id, output_str, day);
       FILE* fp = fopen(filename, "w");
       fprintf(fp, "lat long\n");
       this.infected_households.clear();
       // get the counts for this output_code
-      Global::Places.get_visualization_data_from_households(disease_id, output_code);
+      Global.Places.get_visualization_data_from_households(disease_id, output_code);
       // print out the lat long of all infected households
       int houses = (int)(this.infected_households.size());
       for(int i = 0; i < houses; ++i) {
@@ -502,7 +491,7 @@ namespace Fred
       }
     */
 
-    void Visualization_Layer::print_output_data(char* dir, int disease_id, int output_code, char* output_str, int day)
+    void print_output_data(string dir, int disease_id, int output_code, string output_str, int day)
     {
       char filename[FRED_STRING_SIZE];
       sprintf(filename, "%s/dis%d/%s/day-%d.txt", dir, disease_id, output_str, day);
@@ -510,14 +499,14 @@ namespace Fred
       // printf("print_output_data to file %s\n", filename);
 
       // get the counts for this output_code
-      Global::Places.get_visualization_data_from_households(day, disease_id, output_code);
+      Global.Places.get_visualization_data_from_households(day, disease_id, output_code);
 
       // print out the non-zero patches
       for (int i = 0; i < this.rows; ++i)
       {
         for (int j = 0; j < this.cols; ++j)
         {
-          Visualization_Patch* patch = (Visualization_Patch*)&(this.grid[i][j]);
+          Visualization_Patch* patch = (Visualization_Patch*)&(this.grid[i,j]);
           int count = patch.get_count();
           if (count > 0)
           {
@@ -531,13 +520,13 @@ namespace Fred
       fclose(fp);
     }
 
-    void Visualization_Layer::print_census_tract_data(char* dir, int disease_id, int output_code, char* output_str, int day)
+    void print_census_tract_data(string dir, int disease_id, int output_code, string output_str, int day)
     {
       char filename[FRED_STRING_SIZE];
       sprintf(filename, "%s/dis%d/%s/census_tracts-%d.txt", dir, disease_id, output_str, day);
 
       // get the counts for this output_code
-      Global::Places.get_census_tract_data_from_households(day, disease_id, output_code);
+      Global.Places.get_census_tract_data_from_households(day, disease_id, output_code);
 
       FILE* fp = fopen(filename, "w");
       fprintf(fp, "Census_tract\tCount\tPopsize\n");
@@ -559,7 +548,7 @@ namespace Fred
       }
     }
 
-    void Visualization_Layer::print_population_data(char* dir, int disease_id, int day)
+    void print_population_data(string dir, int disease_id, int day)
     {
       char filename[FRED_STRING_SIZE];
       // printf("Printing population size for GAIA\n");
@@ -568,12 +557,12 @@ namespace Fred
 
       // get the counts for an arbitrary output code;
       // we only care about the popsize here.
-      Global::Places.get_visualization_data_from_households(day, disease_id, Global::OUTPUT_C);
+      Global.Places.get_visualization_data_from_households(day, disease_id, Global.OUTPUT_C);
       for (int i = 0; i < this.rows; ++i)
       {
         for (int j = 0; j < this.cols; ++j)
         {
-          Visualization_Patch* patch = (Visualization_Patch*)&grid[i][j];
+          Visualization_Patch* patch = (Visualization_Patch*)&grid[i,j];
           int popsize = patch.get_popsize();
           if (popsize > 0)
           {
@@ -586,32 +575,31 @@ namespace Fred
       fclose(fp);
     }
 
-    void Visualization_Layer::print_vector_data(char* dir, int disease_id, int day)
+    void print_vector_data(string dir, int disease_id, int day)
     {
-      char filename[FRED_STRING_SIZE];
       // printf("Printing population size for GAIA\n");
-      sprintf(filename, "%s/dis%d/Vec/day-%d.txt", dir, disease_id, day);
-      FILE* fp = fopen(filename, "w");
-
-      Global::Vectors.update_visualization_data(disease_id, day);
-      for (int i = 0; i < this.rows; ++i)
+      var filename = $"{dir}/dis{disease_id}/Vec/day-{day}.txt";
+      Global.Vectors.update_visualization_data(disease_id, day);
+      using (var writer = new StreamWriter(filename))
       {
-        for (int j = 0; j < this.cols; ++j)
+        for (int i = 0; i < this.Rows; ++i)
         {
-          Visualization_Patch* patch = (Visualization_Patch*)&grid[i][j];
-          int count = patch.get_count();
-          if (count > 0)
+          for (int j = 0; j < this.Cols; ++j)
           {
-            fprintf(fp, "%d %d %d\n", i, j, count);
+            var patch = grid[i, j];
+            int count = patch.get_count();
+            if (count > 0)
+            {
+              writer.WriteLine("{0} {1} {2}", i, j, count);
+            }
+            patch.reset_counts();
           }
-          patch.reset_counts();
         }
       }
-      fclose(fp);
     }
 
 
-    void Visualization_Layer::initialize_household_data(fred::geo latitude, fred::geo longitude, int count)
+    public void initialize_household_data(double latitude, double longitude, int count)
     {
       /*
         if(count > 0) {
@@ -621,23 +609,23 @@ namespace Fred
       */
     }
 
-    void Visualization_Layer::update_data(fred::geo latitude, fred::geo longitude, int count, int popsize)
+    public void update_data_geo(double latitude, double longitude, int count, int popsize)
     {
       if (this.gaia_mode)
       {
-        Visualization_Patch* patch = get_patch(latitude, longitude);
-        if (patch != NULL)
+        var patch = get_patch_geo(latitude, longitude);
+        if (patch != null)
         {
           patch.update_patch_count(count, popsize);
         }
       }
 
-      if (Global::Enable_HAZEL)
+      if (Global.IsHazelEnabled)
       {
-        int size = this.households.size();
+        int size = this.households.Count;
         for (int i = 0; i < size; ++i)
         {
-          Household* hh = static_cast<Household*>(this.households[i]);
+          var hh = this.households[i];
           hh.reset_healthcare_info();
         }
       }
@@ -649,23 +637,19 @@ namespace Fred
       */
     }
 
-    void Visualization_Layer::update_data(double x, double y, int count, int popsize)
+    public void update_data(double x, double y, int count, int popsize)
     {
-      Visualization_Patch* patch = get_patch(x, y);
-      if (patch != NULL)
+      var patch = get_patch(x, y);
+      if (patch != null)
       {
         patch.update_patch_count(count, popsize);
       }
     }
 
-    void Visualization_Layer::update_data(unsigned long long tract, int count, int popsize)
+    public void update_data(long tract, int count, int popsize)
     {
-      census_tract[tract] += count;
-      census_tract_pop[tract] += popsize;
+      this.census_tract[tract] += count;
+      this.census_tract_pop[tract] += popsize;
     }
-
-
-
-
   }
 }

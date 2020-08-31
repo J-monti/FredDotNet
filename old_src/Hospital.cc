@@ -122,7 +122,7 @@ void Hospital::get_parameters() {
     printf("\nHospital contact_prob:\n");
     for(int i  = 0; i < n; ++i)  {
       for(int j  = 0; j < n; ++j) {
-	      printf("%f ", Hospital::prob_transmission_per_contact[i][j]);
+          printf("%f ", Hospital::prob_transmission_per_contact[i][j]);
       }
       printf("\n");
     }
@@ -179,7 +179,7 @@ void Hospital::get_parameters() {
               tokens[ACCPT_UPMC], tokens[ACCPT_UNINSRD], tokens[REOPEN_AFTR_DAYS],
               tokens[IS_MOBILE], tokens[ADD_CAPACITY]);
 
-	          Hospital::HAZEL_hospital_init_map.insert(std::pair<string, HAZEL_Hospital_Init_Data>(hosp_id_str, init_data));
+              Hospital::HAZEL_hospital_init_map.insert(std::pair<string, HAZEL_Hospital_Init_Data>(hosp_id_str, init_data));
           }
           tokens.clear();
         }

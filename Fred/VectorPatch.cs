@@ -2,7 +2,7 @@
 
 namespace Fred
 {
-  public class VectorPatch : AbstractPatch
+  public class VectorPatch : Abstract_Patch
   {
     public const int DISEASE_TYPES = 4;
     protected double suitability;
@@ -77,7 +77,7 @@ namespace Fred
       {
         temperature = 32;
       }
-      //FRED_VERBOSE(1, "SET TEMP: Patch %d %d temp %f\n", row, col, patch_temperature);
+      //FredUtils.Log(1, "SET TEMP: Patch %d %d temp %f\n", row, col, patch_temperature);
     }
 
     public double get_seeds(int dis, int day)
@@ -97,11 +97,11 @@ namespace Fred
       seeds[dis] = seeds_;
       day_start_seed[dis] = day_on;
       day_end_seed[dis] = day_off;
-      //FRED_VERBOSE(1, "SET_VECTOR_SEEDS: Patch %d %d proportion of susceptible for disease [%d]: %f. start: %d end: %d\n", row, col, dis, seeds[dis], day_on, day_off);
+      //FredUtils.Log(1, "SET_VECTOR_SEEDS: Patch %d %d proportion of susceptible for disease [%d]: %f. start: %d end: %d\n", row, col, dis, seeds[dis], day_on, day_off);
     }
     public void print()
     {
-      //FRED_VERBOSE(0, "Vector_patch: %d %d\n",
+      //FredUtils.Log(0, "Vector_patch: %d %d\n",
       //       row, col);
     }
 

@@ -23,7 +23,7 @@ namespace Fred
     {
 
       int infectious_hosts = sexual_trans_network.get_number_of_infectious_people(disease_id);
-      //FRED_VERBOSE(0, "SEXUAL_TRANS: day %d infectious = %d\n", day, infectious_hosts);
+      //FredUtils.Log(0, "SEXUAL_TRANS: day %d infectious = %d\n", day, infectious_hosts);
       if (infectious_hosts == 0)
       {
         return;
@@ -45,7 +45,7 @@ namespace Fred
       double number_of_contacts_per_link = sexual_trans_network.get_sexual_contacts_per_day();
       int max_transmissions = (int)Math.Round(total_number_of_links * number_of_contacts_per_link * trans_per_contact);
 
-      //FRED_VERBOSE(0, "SEXUAL_TRANS: day %d infectious = %d links = %d contacts = %f trans = %f max = %d\n",
+      //FredUtils.Log(0, "SEXUAL_TRANS: day %d infectious = %d links = %d contacts = %f trans = %f max = %d\n",
       //            day, infectious_hosts, total_number_of_links,
       //            number_of_contacts_per_link, trans_per_contact, max_transmissions);
 
@@ -53,11 +53,11 @@ namespace Fred
       for (int attempt = 0; attempt < max_transmissions; ++attempt)
       {
 
-        //FRED_VERBOSE(0, "SEXUAL_TRANS attempt %d starting\n", attempt);
+        //FredUtils.Log(0, "SEXUAL_TRANS attempt %d starting\n", attempt);
 
         // select a link at random
         int selected = FredRandom.Next(0, total_number_of_links - 1);
-        //FRED_VERBOSE(0, "SEXUAL_TRANS total_links %d selected %d\n", total_number_of_links, selected);
+        //FredUtils.Log(0, "SEXUAL_TRANS total_links %d selected %d\n", total_number_of_links, selected);
 
         bool found = false;
         int i = 0;
@@ -66,13 +66,13 @@ namespace Fred
           i++;
         }
         var infector = sexual_trans_network.get_infectious_person(disease_id, i);
-        //FRED_VERBOSE(0, "SEXUAL_TRANS infector %d\n", infector.get_id());
+        //FredUtils.Log(0, "SEXUAL_TRANS infector %d\n", infector.get_id());
 
         int infector_out_degree = link_sum[i] - (i == 0 ? 0 : link_sum[i - 1]);
         int out_degree = infector.get_out_degree(sexual_trans_network);
         int infector_link = infector_out_degree - (link_sum[i] - selected);
 
-        //FRED_VERBOSE(0, "SEXUAL_TRANS infector out_degree %d %d link %d\n", infector_out_degree, out_degree, infector_link);
+        //FredUtils.Log(0, "SEXUAL_TRANS infector out_degree %d %d link %d\n", infector_out_degree, out_degree, infector_link);
 
         // find the destination of the selected link
         var infectee = infector.get_end_of_link(infector_link, sexual_trans_network);
@@ -83,15 +83,15 @@ namespace Fred
           bool success = attempt_transmission(infector, infectee,
                 disease_id, day, sexual_trans_network);
         }
-        //FRED_VERBOSE(0, "SEXUAL_TRANS attempt %d complete\n", attempt);
+        //FredUtils.Log(0, "SEXUAL_TRANS attempt %d complete\n", attempt);
       }
-      //FRED_VERBOSE(0, "SEXUAL_TRANS complete\n");
+      //FredUtils.Log(0, "SEXUAL_TRANS complete\n");
     }
 
     public  bool attempt_transmission(Person infector, Person infectee,
                      int disease_id, int day, SexualTransmissionNetwork sexual_trans_network)
     {
-      //FRED_STATUS(0, "infector %d -- infectee %d is susceptible\n", infector.get_id(), infectee.get_id());
+      //FredUtils.Status(0, "infector %d -- infectee %d is susceptible\n", infector.get_id(), infectee.get_id());
       double infectivity = infector.get_infectivity(disease_id, day);
       // reduce infectivity due to infector's hygiene (face masks or hand washing)
       // infectivity *= infector.get_transmission_modifier_due_to_hygiene(disease_id);
@@ -108,14 +108,14 @@ namespace Fred
       {
         // successful transmission; create a new infection in infectee
         infector.infect(infectee, disease_id, null, day);
-        //FRED_VERBOSE(0, "transmission succeeded: r = %f  prob = %f\n", r, infection_prob);
+        //FredUtils.Log(0, "transmission succeeded: r = %f  prob = %f\n", r, infection_prob);
         // notify the epidemic
         Global.Diseases[disease_id].get_epidemic().become_exposed(infectee, day);
         return true;
       }
       else
       {
-        //FRED_VERBOSE(0, "transmission failed: r = %f  prob = %f\n", r, infection_prob);
+        //FredUtils.Log(0, "transmission failed: r = %f  prob = %f\n", r, infection_prob);
         return false;
       }
     }

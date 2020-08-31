@@ -2,24 +2,20 @@
 
 namespace Fred
 {
-  public class AntiviralDecisionAllowOnlyOne : Decision
+  public class AV_Decision_Allow_Only_One : Decision
   {
-    public AntiviralDecisionAllowOnlyOne() { }
-    public AntiviralDecisionAllowOnlyOne(Policy policy)
+    public AV_Decision_Allow_Only_One() { }
+
+    public AV_Decision_Allow_Only_One(Policy policy)
       : base(policy)
     {
-      this.Name = "AV Decision Allow Only One AV per Person";
-      this.Type = "Y/N";
+      this.name = "AV Decision Allow Only One AV per Person";
+      this.type = "Y/N";
     }
 
-    public override int Evaluate(Person person, int disease, DateTime currentDay)
+    public override int evaluate(Person person, int disease, int current_day)
     {
-      if (person.Health.NumberAVTaken == 0)
-      {
-        return 0;
-      }
-      
-      return -1;
+      return (person.get_health().get_number_av_taken() == 0) ? 0 : -1;
     }
   }
 }

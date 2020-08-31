@@ -9,46 +9,77 @@ namespace Fred
    *  1. Handles a stock of mitigation supplies
    *  2. Holds the policy for doling out a mitigation strategy
    */
-  public class Manager
+  public abstract class Manager
   {
+    protected List<Policy> policies;   // vector to hold the policies this manager can apply
+    protected List<int> results;        // DEPRICATE holds the results of the policies
+    protected Population pop;               // Population in which this manager is tied to
+    protected int current_policy;            // The current policy this manager is using
+
+    /**
+   * Default constructor
+   */
     public Manager()
     {
-      this.Policies = new List<Policy>();
+      this.current_policy = -1;
     }
 
-    public Manager(Population pop)
+    /**
+     * Constructor that sets the Population to which this Manager is tied
+     */
+    public Manager(Population _pop)
     {
-      this.CurrentPolicy = 0;
-      this.Population = pop;
-      this.Policies = new List<Policy>();
+      this.pop = _pop;
+      this.current_policy = 0;
     }
 
-    public Population Population { get; }
-
-    public int CurrentPolicy { get; }
-
-    public List<Policy> Policies { get; }
-
-    public int PollManager(Person p, int disease, DateTime day)
+    /**
+     * Member to allow someone to see if they fit the current policy
+     *
+     * @param p a pointer to a Person object
+     * @param disease the disease to poll for
+     * @param day the simulation day
+     *
+     * @return the manager's decision
+     */
+    public virtual int poll_manager(Person p, int disease, int day) //member to allow someone to see if they fit the current policy
     {
-      return this.Policies[this.CurrentPolicy].Choose(p, disease, day);
+      return this.policies[this.current_policy].choose(p, disease, day);
     }
 
+    // Parameters
+    /**
+     * @return a pointer to the Population object to which this manager is tied
+     */
+    public Population get_population()
+    {
+      return this.pop;
+    }
+
+    /**
+     * @return the current policy this manager is using
+     */
+    public int get_current_policy()
+    {
+      return this.current_policy;
+    }
+
+    //Utility Members
     /**
      * Perform the daily update for this object
      *
      * @param day the simulation day
      */
-    public virtual void Update(int day) { }
+    public virtual void update(int day) { }
 
     /**
      * Put this object back to its original state
      */
-    public virtual void Reset() { }
+    public virtual void reset() { }
 
     /**
      * Print out information about this object
      */
-    public virtual void Print() { }
+    public virtual void print() { }
   }
 }

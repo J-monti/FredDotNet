@@ -1,6 +1,6 @@
 ﻿namespace Fred
 {
-  public class VisualizationPatch : AbstractPatch
+  public class VisualizationPatch : Abstract_Patch
   {
     protected int count;
     protected int popsize;
@@ -39,7 +39,7 @@
 
     public void print()
     {
-      //FRED_VERBOSE(0, "visualization_patch: %d %d %d %d\n", row, col, count, popsize);
+      //FredUtils.Log(0, "visualization_patch: %d %d %d %d\n", row, col, count, popsize);
     }
   }
 }

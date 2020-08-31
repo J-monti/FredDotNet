@@ -68,11 +68,11 @@ namespace Fred
     void spread_infection(int day, int disease_id, Place* place)
     {
 
-      FRED_VERBOSE(1, "spread_infection day %d disease %d place %d %s\n",
+      FredUtils.Log(1, "spread_infection day %d disease %d place %d %s\n",
              day, disease_id, place.get_id(), place.get_label());
 
       // abort if transmissibility == 0 or if place is closed
-      Disease* disease = Global::Diseases.get_disease(disease_id);
+      Disease* disease = Global.Diseases.get_disease(disease_id);
       double beta = disease.get_transmissibility();
       if (beta == 0.0 || place.is_open(day) == false || place.should_be_open(day, disease_id) == false)
       {
@@ -93,7 +93,7 @@ namespace Fred
       if (place.is_household())
       {
         pairwise_transmission_model(day, disease_id, place);
-        FRED_VERBOSE(1, "spread_infection finished day %d disease %d place %d %s\n",
+        FredUtils.Log(1, "spread_infection finished day %d disease %d place %d %s\n",
          day, disease_id, place.get_id(), place.get_label());
         return;
       }
@@ -108,13 +108,13 @@ namespace Fred
       }
 
       /*
-      if(Global::Enable_New_Transmission_Model) {
+      if(Global.Enable_New_Transmission_Model) {
         age_based_transmission_model(day, disease_id, place);
       } else {
         default_transmission_model(day, disease_id, place);
       }
       */
-      FRED_VERBOSE(1, "spread_infection finished day %d disease %d place %d %s\n",
+      FredUtils.Log(1, "spread_infection finished day %d disease %d place %d %s\n",
              day, disease_id, place.get_id(), place.get_label());
 
       return;
@@ -131,7 +131,7 @@ namespace Fred
     {
 
       assert(infectee.is_susceptible(disease_id));
-      FRED_STATUS(1, "infector %d -- infectee %d is susceptible\n", infector.get_id(), infectee.get_id());
+      FredUtils.Status(1, "infector %d -- infectee %d is susceptible\n", infector.get_id(), infectee.get_id());
 
       double susceptibility = infectee.get_susceptibility(disease_id);
 
@@ -141,7 +141,7 @@ namespace Fred
       // reduce susceptibility due to infectee's hygiene (face masks or hand washing)
       susceptibility *= infectee.get_susceptibility_modifier_due_to_hygiene(disease_id);
 
-      if (Global::Enable_hh_income_based_susc_mod)
+      if (Global.Enable_hh_income_based_susc_mod)
       {
         int hh_income = Household::get_max_hh_income(); //Default to max (no modifier)
         Household* hh = static_cast<Household*>(infectee.get_household());
@@ -153,7 +153,7 @@ namespace Fred
         //Utils::fred_log("SUSC Modifier [%.4f] for HH Income [%i] modified suscepitibility to [%.4f]\n", hh_income, infectee.get_health().get_susceptibility_modifier_due_to_household_income(hh_income), susceptibility);
       }
 
-      FRED_VERBOSE(2, "susceptibility = %f\n", susceptibility);
+      FredUtils.Log(2, "susceptibility = %f\n", susceptibility);
 
       // reduce transmissibility due to seasonality
       if (Transmission::Seasonal_Reduction > 0.0)
@@ -162,7 +162,7 @@ namespace Fred
         transmission_prob *= Transmission::Seasonality_multiplier[day_of_year];
       }
 
-      double r = Random::draw_random();
+      double r = FredRandom.NextDouble();
       double infection_prob = transmission_prob * susceptibility;
 
       if (r < infection_prob)
@@ -170,7 +170,7 @@ namespace Fred
         // successful transmission; create a new infection in infectee
         infector.infect(infectee, disease_id, place, day);
 
-        FRED_VERBOSE(1, "transmission succeeded: r = %f  prob = %f\n", r, infection_prob);
+        FredUtils.Log(1, "transmission succeeded: r = %f  prob = %f\n", r, infection_prob);
         FRED_CONDITIONAL_VERBOSE(1, infector.get_exposure_date(disease_id) == 0,
                "SEED infection day %i from %d to %d\n", day, infector.get_id(), infectee.get_id());
         FRED_CONDITIONAL_VERBOSE(1, infector.get_exposure_date(disease_id) != 0,
@@ -179,26 +179,26 @@ namespace Fred
         FRED_CONDITIONAL_VERBOSE(0, infection_prob > 1, "infection_prob exceeded unity!\n");
 
         // notify the epidemic
-        Global::Diseases.get_disease(disease_id).get_epidemic().become_exposed(infectee, day);
+        Global.Diseases.get_disease(disease_id).get_epidemic().become_exposed(infectee, day);
 
         return true;
       }
       else
       {
-        FRED_VERBOSE(1, "transmission failed: r = %f  prob = %f\n", r, infection_prob);
+        FredUtils.Log(1, "transmission failed: r = %f  prob = %f\n", r, infection_prob);
         return false;
       }
     }
 
     void default_transmission_model(int day, int disease_id, Place* place)
     {
-      Disease* disease = Global::Diseases.get_disease(disease_id);
+      Disease* disease = Global.Diseases.get_disease(disease_id);
       int N = place.get_size();
 
       person_vec_t* infectious = place.get_infectious_people(disease_id);
       person_vec_t* susceptibles = place.get_enrollees();
 
-      FRED_VERBOSE(1, "default_transmission DAY %d PLACE %s N %d susc %d inf %d\n",
+      FredUtils.Log(1, "default_transmission DAY %d PLACE %s N %d susc %d inf %d\n",
                    day, place.get_label(), N, (int)susceptibles.size(), (int)infectious.size());
 
       // the number of possible infectees per infector is max of (N-1) and S[s]
@@ -273,7 +273,7 @@ namespace Fred
           }
           // get the transmission probs for given infector/infectee pair
           double transmission_prob = 1.0;
-          if (Global::Enable_Transmission_Bias)
+          if (Global.Enable_Transmission_Bias)
           {
             transmission_prob = place.get_transmission_probability(disease_id, infector, infectee);
           }
@@ -303,17 +303,17 @@ namespace Fred
 
       double contact_prob = place.get_contact_rate(day, disease_id);
 
-      FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s N %d\n",
+      FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s N %d\n",
              day, place.get_label(), place.get_size());
 
       for (int infector_pos = 0; infector_pos < infectious.size(); ++infector_pos)
       {
         Person* infector = (*infectious)[infector_pos];      // infectious individual
-                                                             // FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infector %d is %d\n", day, place.get_label(), infector_pos, infector.get_id());
+                                                             // FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infector %d is %d\n", day, place.get_label(), infector_pos, infector.get_id());
 
         if (infector.is_infectious(disease_id) == false)
         {
-          FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infector %d is not infectious!\n",
+          FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infector %d is not infectious!\n",
            day, place.get_label(), infector.get_id());
           continue;
         }
@@ -327,36 +327,36 @@ namespace Fred
             continue;
           }
           int infectee_id = infectee.get_id();
-          char* label = place.get_label();
+          string label = place.get_label();
 
-          FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infectee is %d\n",
+          FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infectee is %d\n",
            day, label, infectee_id);
 
           if (infectee.is_infectious(disease_id) == false)
           {
-            FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infectee %d is not infectious -- updating schedule\n",
+            FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infectee %d is not infectious -- updating schedule\n",
                          day, label, infectee_id);
             infectee.update_schedule(day);
           }
           else
           {
-            FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infectee %d is infectious\n",
+            FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infectee %d is infectious\n",
                          day, label, infectee_id);
           }
           if (!infectee.is_present(day, place))
           {
-            FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infectee %d is not present today\n",
+            FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infectee %d is not present today\n",
                          day, label, infectee_id);
             continue;
           }
           // only proceed if person is susceptible
           if (infectee.is_susceptible(disease_id))
           {
-            FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infectee %d is present and susceptible\n",
+            FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infectee %d is present and susceptible\n",
                          day, label, infectee_id);
             // get the transmission probs for infector/infectee pair
             double transmission_prob = 1.0;
-            if (Global::Enable_Transmission_Bias)
+            if (Global.Enable_Transmission_Bias)
             {
               transmission_prob = place.get_transmission_probability(disease_id, infector, infectee);
             }
@@ -371,7 +371,7 @@ namespace Fred
           }
           else
           {
-            FRED_VERBOSE(1, "pairwise_transmission DAY %d PLACE %s infectee %d is not susceptible\n",
+            FredUtils.Log(1, "pairwise_transmission DAY %d PLACE %s infectee %d is not susceptible\n",
                          day, label, infectee_id);
           }
         } // end susceptibles loop
@@ -385,7 +385,7 @@ namespace Fred
       person_vec_t* infectious = place.get_infectious_people(disease_id);
       person_vec_t* susceptibles = place.get_enrollees();
 
-      Disease* disease = Global::Diseases.get_disease(disease_id);
+      Disease* disease = Global.Diseases.get_disease(disease_id);
       int N = place.get_size();
 
       // printf("DAY %d PLACE %s N %d susc %d inf %d\n",
@@ -403,7 +403,7 @@ namespace Fred
       double expected_infections = sus_hosts * prob_infection;
       exposed = floor(expected_infections);
       double remainder = expected_infections - exposed;
-      if (Random::draw_random() < remainder)
+      if (FredRandom.NextDouble() < remainder)
       {
         exposed++;
       }
@@ -435,7 +435,7 @@ namespace Fred
         {
           continue;
         }
-        FRED_VERBOSE(1, "selected host %d age %d\n", infectee.get_id(), infectee.get_age());
+        FredUtils.Log(1, "selected host %d age %d\n", infectee.get_id(), infectee.get_age());
 
         // only proceed if person is susceptible
         if (infectee.is_susceptible(disease_id))
@@ -467,12 +467,12 @@ namespace Fred
         }
         else
         {
-          FRED_VERBOSE(1, "host %d not susceptible\n", infectee.get_id());
+          FredUtils.Log(1, "host %d not susceptible\n", infectee.get_id());
         }
       }
       if (reached_max_infectees_count)
       {
-        FRED_VERBOSE(1, "day %d DENSITY TRANSMISSION place %s: %d with %d infectees out of %d infectious hosts\n",
+        FredUtils.Log(1, "day %d DENSITY TRANSMISSION place %s: %d with %d infectees out of %d infectious hosts\n",
                     day, place.get_label(), reached_max_infectees_count,
                     this.density_transmission_maximum_infectees, number_infectious_hosts);
       }

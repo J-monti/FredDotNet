@@ -50,7 +50,7 @@ namespace Fred
           }
         }
       }
-      FRED_VERBOSE(1, "spread_infection entered place %s visitors %d\n", place.get_label(), visitors.size());
+      FredUtils.Log(1, "spread_infection entered place %s visitors %d\n", place.get_label(), visitors.size());
       // infections of vectors by hosts
       if (place.have_vectors_been_infected_today() == false)
       {
@@ -81,7 +81,7 @@ namespace Fred
       }
 
       // find the percent distribution of infectious hosts
-      int diseases = Global::Diseases.get_number_of_diseases();
+      int diseases = Global.Diseases.Count;
       int* infectious_hosts = new int[diseases];
       int total_infectious_hosts = 0;
       for (int disease_id = 0; disease_id < diseases; ++disease_id)
@@ -90,7 +90,7 @@ namespace Fred
         total_infectious_hosts += infectious_hosts[disease_id];
       }
 
-      FRED_VERBOSE(0, "infect_vectors on day %d in place %s susceptible_vectors %d total_inf_hosts %d\n",
+      FredUtils.Log(0, "infect_vectors on day %d in place %s susceptible_vectors %d total_inf_hosts %d\n",
              day, place.get_label(), susceptible_vectors, total_infectious_hosts);
 
       // return if there are no infectious hosts
@@ -99,7 +99,7 @@ namespace Fred
         return;
       }
 
-      FRED_VERBOSE(1, "spread_infection::infect_vectors entered susceptible_vectors %d total_inf_hosts %d total_hosts %d\n",
+      FredUtils.Log(1, "spread_infection::infect_vectors entered susceptible_vectors %d total_inf_hosts %d total_hosts %d\n",
              susceptible_vectors, total_infectious_hosts, total_hosts);
 
       // the vector infection model of Chao and Longini
@@ -107,7 +107,7 @@ namespace Fred
       // decide on total number of vectors infected by any infectious host
 
       // each vector's probability of infection
-      double prob_infection = 1.0 - pow((1.0 - Global::Vectors.get_infection_efficiency()), (Global::Vectors.get_bite_rate() * total_infectious_hosts) / total_hosts);
+      double prob_infection = 1.0 - pow((1.0 - Global.Vectors.get_infection_efficiency()), (Global.Vectors.get_bite_rate() * total_infectious_hosts) / total_hosts);
 
       // select a number of vectors to be infected
 
@@ -128,7 +128,7 @@ namespace Fred
         total_infections = prob_infection * susceptible_vectors;
       }
 
-      FRED_VERBOSE(1, "spread_infection::infect_vectors place %s day %d prob_infection %f total infections %d\n", place.get_label(), day, prob_infection, total_infections);
+      FredUtils.Log(1, "spread_infection::infect_vectors place %s day %d prob_infection %f total infections %d\n", place.get_label(), day, prob_infection, total_infections);
 
       // assign strain based on distribution of infectious hosts
       int newly_infected = 0;
@@ -139,12 +139,12 @@ namespace Fred
         newly_infected += exposed_vectors;
       }
       place.mark_vectors_as_infected_today();
-      if (Global::Vectors.get_vector_control_status())
+      if (Global.Vectors.get_vector_control_status())
       {
-        FRED_VERBOSE(1, "Infect_vectors attempting to add infectious patch, day %d place %s\n", day, place.get_label());
-        Global::Vectors.add_infectious_patch(place, day);
+        FredUtils.Log(1, "Infect_vectors attempting to add infectious patch, day %d place %s\n", day, place.get_label());
+        Global.Vectors.add_infectious_patch(place, day);
       }
-      FRED_VERBOSE(1, "newly_infected_vectors %d\n", newly_infected);
+      FredUtils.Log(1, "newly_infected_vectors %d\n", newly_infected);
     }
 
     void infect_hosts(int day, int disease_id, Place* place)
@@ -168,7 +168,7 @@ namespace Fred
         return;
       }
 
-      double transmission_efficiency = Global::Vectors.get_transmission_efficiency();
+      double transmission_efficiency = Global.Vectors.get_transmission_efficiency();
       if (transmission_efficiency == 0.0)
       {
         return;
@@ -176,7 +176,7 @@ namespace Fred
 
       int exposed_hosts = 0;
 
-      double bite_rate = Global::Vectors.get_bite_rate();
+      double bite_rate = Global.Vectors.get_bite_rate();
       /*
       if(total_hosts <= 10){
         int actual_infections = 0;
@@ -199,31 +199,31 @@ namespace Fred
       if(effective_bite){
         // create a new infection in infectee
         actual_infections++;
-        FRED_VERBOSE(1,"transmitting to host %d\n", infectee.get_id());
+        FredUtils.Log(1,"transmitting to host %d\n", infectee.get_id());
         infectee.become_exposed(disease_id, NULL, place, day);
-        Global::Diseases.get_disease(disease_id).get_epidemic().become_exposed(infectee, day);
-        int diseases = Global::Diseases.get_number_of_diseases();
+        Global.Diseases.get_disease(disease_id).get_epidemic().become_exposed(infectee, day);
+        int diseases = Global.Diseases.Count;
         if (diseases > 1) {
           // for dengue: become unsusceptible to other diseases
           for(int d = 0; d < diseases; d++) {
             if(d != disease_id) {
-        Disease* other_disease = Global::Diseases.get_disease(d);
+        Disease* other_disease = Global.Diseases.get_disease(d);
         infectee.become_unsusceptible(other_disease);
-        FRED_VERBOSE(1,"host %d not susceptible to disease %d\n", infectee.get_id(),d);
+        FredUtils.Log(1,"host %d not susceptible to disease %d\n", infectee.get_id(),d);
             }
           }
         }
       }
           }
         }
-        FRED_VERBOSE(0, "infect_hosts: place %s day %d number of bites %d number of bites %f  actual_infections %d infectious mosquitoes %d total hosts %d\n", place.get_label(),day,min_number_of_bites_per_host,number_of_bites_per_host,actual_infections,infectious_vectors,total_hosts);
+        FredUtils.Log(0, "infect_hosts: place %s day %d number of bites %d number of bites %f  actual_infections %d infectious mosquitoes %d total hosts %d\n", place.get_label(),day,min_number_of_bites_per_host,number_of_bites_per_host,actual_infections,infectious_vectors,total_hosts);
       }else{
       */
       // each host's probability of infection
       double prob_infection = 1.0 - pow((1.0 - transmission_efficiency), (bite_rate * infectious_vectors / total_hosts));
 
       // select a number of hosts to be infected
-      FRED_VERBOSE(1, "infect_hosts: place %s day %d  infectious_vectors %d prob_infection %f total_hosts %d\n", place.get_label(), day, infectious_vectors, prob_infection, total_hosts);
+      FredUtils.Log(1, "infect_hosts: place %s day %d  infectious_vectors %d prob_infection %f total_hosts %d\n", place.get_label(), day, infectious_vectors, prob_infection, total_hosts);
       //  double number_of_hosts_receiving_a_potentially_infectious_bite = susceptible_hosts * prob_infection;
       double number_of_hosts_receiving_a_potentially_infectious_bite = susceptible_hosts * prob_infection;
       int max_exposed_hosts = floor(number_of_hosts_receiving_a_potentially_infectious_bite);
@@ -232,7 +232,7 @@ namespace Fred
       {
         max_exposed_hosts++;
       }
-      FRED_VERBOSE(1, "infect_hosts: place %s day %d  max_exposed_hosts[%d] = %d\n", place.get_label(), day, disease_id, max_exposed_hosts);
+      FredUtils.Log(1, "infect_hosts: place %s day %d  max_exposed_hosts[%d] = %d\n", place.get_label(), day, disease_id, max_exposed_hosts);
       // attempt to infect the max_exposed_hosts
 
       // randomize the order of processing the susceptible list
@@ -246,22 +246,22 @@ namespace Fred
       FYShuffle<int>(shuffle_index);
 
       // get the disease object   
-      Disease* disease = Global::Diseases.get_disease(disease_id);
+      Disease* disease = Global.Diseases.get_disease(disease_id);
       for (int j = 0; j < max_exposed_hosts && j < susceptible_visitors.size(); ++j)
       {
         //for(int j = 0; j < max_exposed_hosts && j < visitors.size(); ++j) {
         Person* infectee = susceptible_visitors[shuffle_index[j]];
         //Person* infectee = visitors[shuffle_index[j]];
-        FRED_VERBOSE(1, "selected host %d age %d\n", infectee.get_id(), infectee.get_age());
+        FredUtils.Log(1, "selected host %d age %d\n", infectee.get_id(), infectee.get_age());
         // NOTE: need to check if infectee already infected
         if (infectee.is_susceptible(disease_id))
         {
           // create a new infection in infectee
-          FRED_VERBOSE(1, "transmitting to host %d\n", infectee.get_id());
+          FredUtils.Log(1, "transmitting to host %d\n", infectee.get_id());
           infectee.become_exposed(disease_id, NULL, place, day);
           actual_infections++;
-          Global::Diseases.get_disease(disease_id).get_epidemic().become_exposed(infectee, day);
-          int diseases = Global::Diseases.get_number_of_diseases();
+          Global.Diseases.get_disease(disease_id).get_epidemic().become_exposed(infectee, day);
+          int diseases = Global.Diseases.Count;
           if (diseases > 1)
           {
             // for dengue: become unsusceptible to other diseases
@@ -269,19 +269,19 @@ namespace Fred
             {
               if (d != disease_id)
               {
-                Disease* other_disease = Global::Diseases.get_disease(d);
+                Disease* other_disease = Global.Diseases.get_disease(d);
                 infectee.become_unsusceptible(other_disease);
-                FRED_VERBOSE(1, "host %d not susceptible to disease %d\n", infectee.get_id(), d);
+                FredUtils.Log(1, "host %d not susceptible to disease %d\n", infectee.get_id(), d);
               }
             }
           }
         }
         else
         {
-          FRED_VERBOSE(1, "host %d not susceptible\n", infectee.get_id());
+          FredUtils.Log(1, "host %d not susceptible\n", infectee.get_id());
         }
       }
-      FRED_VERBOSE(1, "infect_hosts: place %s day %d  max_exposed_hosts[%d] = %d actual_infections %d\n", place.get_label(), day, disease_id, max_exposed_hosts, actual_infections);
+      FredUtils.Log(1, "infect_hosts: place %s day %d  max_exposed_hosts[%d] = %d actual_infections %d\n", place.get_label(), day, disease_id, max_exposed_hosts, actual_infections);
     }
   }
 }

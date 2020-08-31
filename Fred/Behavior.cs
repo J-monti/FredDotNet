@@ -6,288 +6,529 @@ namespace Fred
 {
   public class Behavior
   {
+    private Person health_decision_maker;
+    private Intention[] intention;
+
+    // run-time parameters for behaviors
+    private static bool parameters_are_set;
+    private static Behavior_params[] behavior_params;
+
     static Behavior()
     {
-      if (!AreBehaviorParamsSet)
+      if (!parameters_are_set)
       {
-        var behaviorCount = (int)BehaviorEnum.NumBehaviors;
-        BehaviorParams = new List<BehaviorParameters>();
-        for(int a = 0; a < behaviorCount; a++)
+        var behaviorCount = (int)Behavior_index.NUM_BEHAVIORS;
+        behavior_params = new Behavior_params[behaviorCount];
+        for (int a = 0; a < behaviorCount; a++)
         {
-          BehaviorParams.Add(new BehaviorParameters());
+          behavior_params[a] = new Behavior_params();
         }
-        AreBehaviorParamsSet = true;
+        get_parameters();
+        for (int i = 0; i < behaviorCount; ++i)
+        {
+          print_params(i);
+        }
+        parameters_are_set = true;
       }
     }
 
     public Behavior()
     {
-      this.Intentions = new List<Intention>();
-    }
-
-    public static bool AreBehaviorParamsSet { get; }
-    public static List<BehaviorParameters> BehaviorParams { get; }
-    public Person HealthDecisionMaker { get; private set; }
-    public List<Intention> Intentions { get; }
-    public bool IsHealthDecisionMaker { get { return this.HealthDecisionMaker != null; } }
-
-    public void SetHealthDecisionMaker(Person person)
-    {
-      this.HealthDecisionMaker = person;
-      if (person != null)
-      {
-        this.Intentions.Clear();
-      }
     }
 
     public void setup(Person self)
     {
-      if (!Global.IsBehaviorsEnabled)
+      Utils.assert(parameters_are_set == true);
+      if (!Global.Enable_Behaviors)
       {
         return;
       }
 
       // setup an adult
-      if (self.IsAdult)
+      if (self.is_adult())
       {
         // adults do not have a separate health decision maker
-        this.SetHealthDecisionMaker(null);
-        this.SetupIntentions(self);
+        Utils.FRED_VERBOSE(1, "behavior_setup for adult {0} age {1} -- will make own health decisions",
+         self.get_id(), self.get_age());
+        this.health_decision_maker = null;
+        setup_intentions(self);
         return;
       }
 
       // setup a child
       int relationship = self.get_relationship();
-      var hh = self.Household;
+      var hh = (Household)(self.get_household());
 
       if (hh == null)
       {
-        if (Global::Enable_Hospitals && self.is_hospitalized() && self.get_permanent_household() != null)
+        if (Global.Enable_Hospitals && self.is_hospitalized() && self.get_permanent_household() != null)
         {
-          hh = static_cast<Household*>(self.get_permanent_household());
+          hh = (Household)(self.get_permanent_household());
         }
       }
 
-      Person* person = select_adult(hh, relationship, self);
+      var person = select_adult(hh, relationship, self);
 
       // child is on its own
       if (person == null)
       {
+        Utils.FRED_VERBOSE(1, "behavior_setup for child {0} age {1} -- will make own health decisions",
+         self.get_id(), self.get_age());
         // no separate health decision maker
-        this.HealthDecisionMaker = null;
-        this.SetupIntentions(self);
+        this.health_decision_maker = null;
+        setup_intentions(self);
         return;
       }
 
       // an older child is available
-      if (!person.IsAdult)
+      if (person.is_adult() == false)
       {
-        this.HealthDecisionMaker = person;
+        Utils.FRED_VERBOSE(0,
+         "behavior_setup for child {0} age {1} -- minor person {2} age {3} will make health decisions",
+         self.get_id(), self.get_age(), person.get_id(), person.get_age());
+        this.health_decision_maker = person;
         person.become_health_decision_maker(person);
         return;
       }
 
       // an adult is available
-      this.HealthDecisionMaker = person; // no need to setup atitudes for adults
-      return;
+      Utils.FRED_VERBOSE(0,
+             "behavior_setup for child {0} age {1} -- adult person {2} age {3} will make health decisions",
+             self.get_id(), self.get_age(), person.get_id(), person.get_age());
+      this.health_decision_maker = person; // no need to setup atitudes for adults
     }
 
-    private void SetupIntentions(Person self)
+    public void update(Person self, int day)
     {
-      if (!Global.IsBehaviorsEnabled)
+      Utils.FRED_VERBOSE(1, "behavior::update person {0} day {1}", self.get_id(), day);
+
+      /*
+        if(day == -1 && self.get_id() == 0) {
+        for(int i = 0; i < Behavior_index::NUM_BEHAVIORS; ++i) {
+        print_params(i);
+        }
+        }
+      */
+
+      if (!Global.Enable_Behaviors)
       {
         return;
       }
 
-      // create array of pointers to intentions
-      this.Intentions.Clear();
-
-      // initialize to null intentions
-      for (int i = 0; i < (int)BehaviorEnum.NumBehaviors; i++)
+      if (this.health_decision_maker != null)
       {
-        this.Intentions.Add(null);
+        return;
       }
 
-      if (BehaviorParams[(int)BehaviorEnum.StayHomeWhenSick].IsEnabled)
+      for (int i = 0; i < (int)Behavior_index.NUM_BEHAVIORS; ++i)
       {
-        this.Intentions[(int)BehaviorEnum.StayHomeWhenSick] =
-          new Intention(self, (int)BehaviorEnum.StayHomeWhenSick);
+        var bParams = behavior_params[i];
+        if (bParams.enabled)
+        {
+          Utils.FRED_VERBOSE(1, "behavior::update -- update intention[{0}]\n", i);
+          Utils.assert(this.intention[i] != null);
+          this.intention[i].update(day);
+        }
       }
 
-      if (BehaviorParams[(int)BehaviorEnum.TakeSickLeave].IsEnabled)
-      {
-        this.Intentions[(int)BehaviorEnum.TakeSickLeave] =
-          new Intention(self, (int)BehaviorEnum.TakeSickLeave);
-      }
-
-      if (BehaviorParams[(int)BehaviorEnum.KeepChildHomeWhenSick].IsEnabled)
-      {
-        this.Intentions[(int)BehaviorEnum.KeepChildHomeWhenSick] =
-          new Intention(self, (int)BehaviorEnum.KeepChildHomeWhenSick);
-      }
-
-      if (BehaviorParams[(int)BehaviorEnum.AcceptVaccine].IsEnabled)
-      {
-        this.Intentions[(int)BehaviorEnum.AcceptVaccine] =
-          new Intention(self, (int)BehaviorEnum.AcceptVaccine);
-      }
-
-      if (BehaviorParams[(int)BehaviorEnum.AcceptVaccineDose].IsEnabled)
-      {
-        this.Intentions[(int)BehaviorEnum.AcceptVaccineDose] =
-          new Intention(self, (int)BehaviorEnum.AcceptVaccineDose);
-      }
-
-      if (BehaviorParams[(int)BehaviorEnum.AcceptVaccineForChild].IsEnabled)
-      {
-        this.Intentions[(int)BehaviorEnum.AcceptVaccineForChild] =
-          new Intention(self, (int)BehaviorEnum.AcceptVaccineForChild);
-      }
-
-      if (BehaviorParams[(int)BehaviorEnum.AcceptVaccineDoseForChild].IsEnabled)
-      {
-        this.Intentions[(int)BehaviorEnum.AcceptVaccineDoseForChild] =
-          new Intention(self, (int)BehaviorEnum.AcceptVaccineDoseForChild);
-      }
+      Utils.FRED_VERBOSE(1, "behavior::update complete person {0} day {1}", self.get_id(), day);
     }
 
-    public void Update(Person self, DateTime day)
+    public void terminate(Person self)
     {
-      if (!Global.IsBehaviorsEnabled)
+      if (!Global.Enable_Behaviors)
       {
         return;
       }
-
-      if (this.HealthDecisionMaker != null)
+      if (this.health_decision_maker != null)
       {
         return;
       }
-
-      for (int i = 0; i < (int)BehaviorEnum.NumBehaviors; ++i)
+      if (Global.Verbose > 1)
       {
-        var bParams = BehaviorParams[i];
-        if (bParams.IsEnabled) {
-          this.Intentions[i].Update(day);
+        Console.WriteLine("terminating behavior for agent {0} age {1}", self.get_id(), self.get_age());
+      }
+
+      // see if this person is the adult decision maker for any child in the household
+      var hh = (Household)(self.get_household());
+      if (hh == null)
+      {
+        if (Global.Enable_Hospitals && self.is_hospitalized() && self.get_permanent_household() != null)
+        {
+          hh = (Household)(self.get_permanent_household()); ;
+        }
+      }
+      int size = hh.get_size();
+      for (int i = 0; i < size; ++i)
+      {
+        var child = hh.get_enrollee(i);
+        if (child != self && child.get_health_decision_maker() == self)
+        {
+          if (Global.Verbose > 1)
+          {
+            Console.WriteLine("need new decision maker for agent {0} age {1}", child.get_id(), child.get_age());
+          }
+          child.setup_behavior();
+          if (Global.Verbose > 1)
+          {
+            Console.WriteLine("new decision maker is {0} age {1}", child.get_health_decision_maker().get_id(),
+             child.get_health_decision_maker().get_age());
+          }
         }
       }
     }
 
+    // methods to return this person's intention to take an action:
     public bool adult_is_staying_home()
     {
-      int n = (int)BehaviorEnum.StayHomeWhenSick;
-      var my_intention = this.Intentions[n];
-      if (my_intention == null)
-      {
-        return false;
-      }
-      var bParams = BehaviorParams[n];
-      if (bParams.IsEnabled == false) {
-        return false;
-      }
-      return my_intention.agree();
+      return CheckBehavior((int)Behavior_index.STAY_HOME_WHEN_SICK);
     }
 
     public bool adult_is_taking_sick_leave()
     {
-      int n = (int)BehaviorEnum.TakeSickLeave;
-      var my_intention = this.Intentions[n];
-      if (my_intention == null)
-      {
-        return false;
-      }
-      var bParams = BehaviorParams[n];
-      if (bParams.IsEnabled == false) {
-        return false;
-      }
-      return my_intention.agree();
+      return CheckBehavior((int)Behavior_index.TAKE_SICK_LEAVE);
     }
 
     public bool child_is_staying_home()
     {
-      int n = (int)BehaviorEnum.KeepChildHomeWhenSick;
-      var bParams = BehaviorParams[n];
-      if (bParams.IsEnabled == false) {
+      var n = (int)Behavior_index.KEEP_CHILD_HOME_WHEN_SICK;
+      if (!behavior_params[n].enabled)
+      {
         return false;
       }
+
       if (this.health_decision_maker != null)
       {
         return this.health_decision_maker.child_is_staying_home();
       }
-      // I am the health decision maker
-      var my_intention = this.Intentions[n];
-      assert(my_intention != null);
-      return my_intention.agree();
+
+      return CheckBehavior(n);
     }
 
     public bool acceptance_of_vaccine()
     {
-      int n = (int)BehaviorEnum.AcceptVaccine;
-      var bParams = BehaviorParams[n];
-      if (bParams.IsEnabled == false) {
+      var n = (int)Behavior_index.ACCEPT_VACCINE;
+      if (!behavior_params[n].enabled)
+      {
         return false;
       }
+
       if (this.health_decision_maker != null)
       {
-        // printf("Asking health_decision_maker %d \n", health_decision_maker.get_id());
         return this.health_decision_maker.acceptance_of_vaccine();
       }
-      // I am the health decision maker
-      var my_intention = this.Intentions[n];
-      assert(my_intention != null);
-      // printf("My answer is:\n");
-      return my_intention.agree();
+
+      return CheckBehavior(n);
     }
 
     public bool acceptance_of_another_vaccine_dose()
     {
-      int n = (int)BehaviorEnum.AcceptVaccineDose;
-      var bParams = BehaviorParams[n];
-      if (bParams.IsEnabled == false) {
+      var n = (int)Behavior_index.ACCEPT_VACCINE_DOSE;
+      if (!behavior_params[n].enabled)
+      {
         return false;
       }
+
       if (this.health_decision_maker != null)
       {
         return this.health_decision_maker.acceptance_of_another_vaccine_dose();
       }
-      // I am the health decision maker
-      var my_intention = this.Intentions[n];
-      assert(my_intention != null);
-      return my_intention.agree();
+
+      return CheckBehavior(n);
     }
 
     public bool child_acceptance_of_vaccine()
     {
-      int n = (int)BehaviorEnum.AcceptVaccineForChild;
-      var bParams = BehaviorParams[n];
-      if (bParams.IsEnabled == false) {
+      var n = (int)Behavior_index.ACCEPT_VACCINE_FOR_CHILD;
+      if (!behavior_params[n].enabled)
+      {
         return false;
       }
+
       if (this.health_decision_maker != null)
       {
-        printf("Asking health_decision_maker %d \n", this.health_decision_maker.get_id());
+        Console.WriteLine("Asking health_decision_maker {0}", this.health_decision_maker.get_id());
         return this.health_decision_maker.child_acceptance_of_vaccine();
       }
-      // I am the health decision maker
-      var my_intention = this.Intentions[n];
-      assert(my_intention != null);
-      return my_intention.agree();
+
+      return CheckBehavior(n);
     }
 
     public bool child_acceptance_of_another_vaccine_dose()
     {
-      int n = (int)BehaviorEnum.AcceptVaccineDoseForChild;
-      var bParams = BehaviorParams[n];
-      if (bParams.IsEnabled == false) {
+      var n = (int)Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD;
+      if (!behavior_params[n].enabled)
+      {
         return false;
       }
+
       if (this.health_decision_maker != null)
       {
         return this.health_decision_maker.child_acceptance_of_another_vaccine_dose();
       }
-      // I am the health decision maker
-      var my_intention = this.Intentions[n];
-      assert(my_intention != null);
-      return my_intention.agree();
+
+      return CheckBehavior(n);
+    }
+
+
+    // access functions
+    public Person get_health_decision_maker()
+    {
+      return this.health_decision_maker;
+    }
+
+    public bool is_health_decision_maker()
+    {
+      return this.health_decision_maker == null;
+    }
+
+    public void set_health_decision_maker(Person p)
+    {
+      health_decision_maker = p;
+      if (p != null)
+      {
+        delete_intentions();
+      }
+    }
+
+    public void become_health_decision_maker(Person self)
+    {
+      if (this.health_decision_maker != null)
+      {
+        this.health_decision_maker = null;
+        delete_intentions();
+        setup_intentions(self);
+      }
+    }
+
+    public static Behavior_params get_behavior_params(int i)
+    {
+      return behavior_params[i];
+    }
+
+    public static void print_params(int n)
+    {
+      var bParams = behavior_params[n];
+      Console.WriteLine("PRINT BEHAVIOR PARAMS:\n");
+      Console.WriteLine("name = {0}", bParams.name);
+      Console.WriteLine("enabled = {0}", bParams.enabled);
+      Console.WriteLine("frequency = {0}", bParams.frequency);
+      Console.WriteLine("behavior_change_model_population = ");
+      for (int i = 0; i < (int)Behavior_change_model_enum.NUM_BEHAVIOR_CHANGE_MODELS; ++i)
+      {
+        Console.WriteLine("{0} ", bParams.behavior_change_model_population[i]);
+      }
+      Console.WriteLine();
+    }
+
+    // private methods
+    private void setup_intentions(Person _self)
+    {
+      if (!Global.Enable_Behaviors)
+      {
+        return;
+      }
+
+      Utils.assert(this.intention == null);
+      var behaviorCount = (int)Behavior_index.NUM_BEHAVIORS;
+      // create array of pointers to intentions
+      this.intention = new Intention[behaviorCount];
+
+      // initialize to null intentions
+      for (int i = 0; i < behaviorCount; i++)
+      {
+        this.intention[i] = null;
+      }
+
+      if (behavior_params[(int)Behavior_index.STAY_HOME_WHEN_SICK].enabled)
+      {
+        this.intention[(int)Behavior_index.STAY_HOME_WHEN_SICK] =
+          new Intention(self, Behavior_index.STAY_HOME_WHEN_SICK);
+      }
+
+      if (behavior_params[(int)Behavior_index.TAKE_SICK_LEAVE].enabled)
+      {
+        this.intention[(int)Behavior_index.TAKE_SICK_LEAVE] =
+          new Intention(self, Behavior_index.TAKE_SICK_LEAVE);
+      }
+
+      if (behavior_params[(int)Behavior_index.KEEP_CHILD_HOME_WHEN_SICK].enabled)
+      {
+        this.intention[(int)Behavior_index.KEEP_CHILD_HOME_WHEN_SICK] =
+          new Intention(self, Behavior_index.KEEP_CHILD_HOME_WHEN_SICK);
+      }
+
+      if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE].enabled)
+      {
+        this.intention[(int)Behavior_index.ACCEPT_VACCINE] =
+          new Intention(self, Behavior_index.ACCEPT_VACCINE);
+      }
+
+      if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE_DOSE].enabled)
+      {
+        this.intention[(int)Behavior_index.ACCEPT_VACCINE_DOSE] =
+          new Intention(self, Behavior_index.ACCEPT_VACCINE_DOSE);
+      }
+
+      if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE_FOR_CHILD].enabled)
+      {
+        this.intention[(int)Behavior_index.ACCEPT_VACCINE_FOR_CHILD] =
+          new Intention(self, Behavior_index.ACCEPT_VACCINE_FOR_CHILD);
+      }
+
+      if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD].enabled)
+      {
+        this.intention[(int)Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD] =
+          new Intention(self, Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD);
+      }
+    }
+
+    private static void get_parameters()
+    {
+      if (parameters_are_set)
+      {
+        return;
+      }
+
+      get_parameters_for_behavior("stay_home_when_sick", (int)Behavior_index.STAY_HOME_WHEN_SICK);
+      get_parameters_for_behavior("take_sick_leave", (int)Behavior_index.TAKE_SICK_LEAVE);
+      get_parameters_for_behavior("keep_child_home_when_sick", (int)Behavior_index.KEEP_CHILD_HOME_WHEN_SICK);
+      get_parameters_for_behavior("accept_vaccine", (int)Behavior_index.ACCEPT_VACCINE);
+      get_parameters_for_behavior("accept_vaccine_dose", (int)Behavior_index.ACCEPT_VACCINE_DOSE);
+      get_parameters_for_behavior("accept_vaccine_for_child", (int)Behavior_index.ACCEPT_VACCINE_FOR_CHILD);
+      get_parameters_for_behavior("accept_vaccine_dose_for_child", (int)Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD);
+      parameters_are_set = true;
+    }
+
+    private static void get_parameters_for_behavior(string behavior_name, int j)
+    {
+      var bParams = behavior_params[j];
+      bParams.name = behavior_name;
+
+      int temp_int = 0;
+      FredParameters.GetParameter($"{behavior_name}_enabled", ref temp_int);
+      bParams.enabled = temp_int != 0;
+      for (int i = 0; i < (int)Behavior_change_model_enum.NUM_BEHAVIOR_CHANGE_MODELS; ++i)
+      {
+        bParams.behavior_change_model_population[i] = 0;
+      }
+
+      bParams.behavior_change_model_cdf =
+        FredParameters.GetParameterList<double>($"{behavior_name}_behavior_change_model_distribution").ToArray();
+      bParams.behavior_change_model_cdf_size = bParams.behavior_change_model_cdf.Length;
+
+      // convert to cdf
+      double stotal = 0;
+      for (int i = 0; i < bParams.behavior_change_model_cdf_size; ++i)
+      {
+        stotal += bParams.behavior_change_model_cdf[i];
+      }
+
+      if (stotal != 100.0 && stotal != 1.0)
+      {
+        Utils.fred_abort("Bad distribution {behavior_name}_behavior_change_model_distribution params_str\nMust sum to 1.0 or 100.0");
+      }
+
+      double cumm = 0.0;
+      for (int i = 0; i < bParams.behavior_change_model_cdf_size; ++i)
+      {
+        bParams.behavior_change_model_cdf[i] /= stotal;
+        bParams.behavior_change_model_cdf[i] += cumm;
+        cumm = bParams.behavior_change_model_cdf[i];
+      }
+
+      Console.WriteLine("BEHAVIOR {0} behavior_change_model_cdf: ", bParams.name);
+      for (int i = 0; i < (int)Behavior_change_model_enum.NUM_BEHAVIOR_CHANGE_MODELS; i++)
+      {
+        Console.Write("{0} ", bParams.behavior_change_model_cdf[i]);
+      }
+      Console.WriteLine();
+
+      FredParameters.GetParameter($"{behavior_name}_frequency", ref bParams.frequency);
+      // FLIP behavior parameters
+      FredParameters.GetParameter($"{behavior_name}_min_prob", ref bParams.min_prob);
+      FredParameters.GetParameter($"{behavior_name}_max_prob", ref bParams.max_prob);
+
+      // override max and min probs if prob is set
+      double prob = 0;
+      FredParameters.GetParameter($"{behavior_name}_prob", ref prob);
+      if (0.0 <= prob)
+      {
+        bParams.min_prob = prob;
+        bParams.max_prob = prob;
+      }
+
+      // IMITATE PREVALENCE behavior parameters
+      bParams.imitate_prevalence_weight =
+        FredParameters.GetParameterList<double>($"{behavior_name}_imitate_prevalence_weights").ToArray();
+
+      bParams.imitate_prevalence_total_weight = 0.0;
+      for (int i = 0; i < Behavior_params.NUM_WEIGHTS; ++i)
+      {
+        bParams.imitate_prevalence_total_weight += bParams.imitate_prevalence_weight[i];
+      }
+
+      FredParameters.GetParameter($"{behavior_name}_imitate_prevalence_update_rate", ref bParams.imitate_prevalence_update_rate);
+      // IMITATE CONSENSUS behavior parameters
+      bParams.imitate_consensus_weight =
+        FredParameters.GetParameterList<double>($"{behavior_name}_imitate_consensus_weights").ToArray();
+
+      bParams.imitate_consensus_total_weight = 0.0;
+      for (int i = 0; i < Behavior_params.NUM_WEIGHTS; ++i)
+      {
+        bParams.imitate_consensus_total_weight += bParams.imitate_consensus_weight[i];
+      }
+
+      FredParameters.GetParameter($"{behavior_name}_imitate_consensus_update_rate", ref bParams.imitate_consensus_update_rate);
+      FredParameters.GetParameter($"{behavior_name}_imitate_consensus_threshold", ref bParams.imitate_consensus_threshold);
+
+      // IMITATE COUNT behavior parameters
+      bParams.imitate_count_weight =
+        FredParameters.GetParameterList<double>($"{behavior_name}_imitate_count_weights").ToArray();
+
+      bParams.imitate_count_total_weight = 0.0;
+      for (int i = 0; i < Behavior_params.NUM_WEIGHTS; ++i)
+      {
+        bParams.imitate_count_total_weight += bParams.imitate_count_weight[i];
+      }
+
+      FredParameters.GetParameter($"{behavior_name}_imitate_count_update_rate", ref bParams.imitate_count_update_rate);
+      FredParameters.GetParameter($"{behavior_name}_imitate_count_threshold", ref bParams.imitate_count_threshold);
+      bParams.imitation_enabled = 0;
+      // HBM parameters
+      bParams.susceptibility_threshold_distr =
+        FredParameters.GetParameterList<double>($"{behavior_name}_susceptibility_threshold").ToArray();
+      if (bParams.susceptibility_threshold_distr.Length != 2)
+      {
+        Utils.fred_abort($"bad {behavior_name}_susceptibility_threshold");
+      }
+
+      bParams.severity_threshold_distr =
+        FredParameters.GetParameterList<double>($"{behavior_name}_severity_threshold").ToArray();
+      if (bParams.severity_threshold_distr.Length != 2)
+      {
+        Utils.fred_abort($"bad {behavior_name}_severity_threshold");
+      }
+
+      bParams.benefits_threshold_distr =
+        FredParameters.GetParameterList<double>($"{behavior_name}_benefits_threshold").ToArray();
+      if (bParams.benefits_threshold_distr.Length != 2)
+      {
+        Utils.fred_abort($"bad {behavior_name}_benefits_threshold");
+      }
+
+      bParams.barriers_threshold_distr =
+        FredParameters.GetParameterList<double>($"{behavior_name}_barriers_threshold").ToArray();
+      if (bParams.barriers_threshold_distr.Length != 2)
+      {
+        Utils.fred_abort($"bad {behavior_name}_barriers_threshold");
+      }
+
+      FredParameters.GetParameter($"{behavior_name}_base_odds_ratio", ref bParams.base_odds_ratio);
+      FredParameters.GetParameter($"{behavior_name}_susceptibility_odds_ratio", ref bParams.susceptibility_odds_ratio);
+      FredParameters.GetParameter($"{behavior_name}_severity_odds_ratio", ref bParams.severity_odds_ratio);
+      FredParameters.GetParameter($"{behavior_name}_benefits_odds_ratio", ref bParams.benefits_odds_ratio);
+      FredParameters.GetParameter($"{behavior_name}_barriers_odds_ratio", ref bParams.barriers_odds_ratio);
     }
 
     private Person select_adult(Household h, int relationship, Person self)
@@ -299,13 +540,13 @@ namespace Fred
         // select first adult natural child or spouse thereof of householder parent, if any
         for (int i = 0; i < N; ++i)
         {
-          Person person = h.get_enrollee(i);
+          var person = h.get_enrollee(i);
           if (person.is_adult() == false || person == self)
           {
             continue;
           }
           int r = person.get_relationship();
-          if (r == Global::SPOUSE || r == Global::CHILD || r == Global::SIBLING || r == Global::IN_LAW)
+          if (r == Global.SPOUSE || r == Global.CHILD || r == Global.SIBLING || r == Global.IN_LAW)
           {
             return person;
           }
@@ -314,13 +555,13 @@ namespace Fred
         // consider adult relative of householder, if any
         for (int i = 0; i < N; ++i)
         {
-          Person* person = h.get_enrollee(i);
+          var person = h.get_enrollee(i);
           if (person.is_adult() == false || person == self)
           {
             continue;
           }
           int r = person.get_relationship();
-          if (r == Global::PARENT || r == Global::OTHER_RELATIVE)
+          if (r == Global.PARENT || r == Global.OTHER_RELATIVE)
           {
             return person;
           }
@@ -330,12 +571,12 @@ namespace Fred
       // select householder if an adult
       for (int i = 0; i < N; ++i)
       {
-        Person* person = h.get_enrollee(i);
+        var person = h.get_enrollee(i);
         if (person.is_adult() == false || person == self)
         {
           continue;
         }
-        if (person.get_relationship() == Global::HOUSEHOLDER)
+        if (person.get_relationship() == Global.HOUSEHOLDER)
         {
           return person;
         }
@@ -344,12 +585,12 @@ namespace Fred
       // select householder's spouse if an adult
       for (int i = 0; i < N; ++i)
       {
-        Person* person = h.get_enrollee(i);
+        var person = h.get_enrollee(i);
         if (person.is_adult() == false || person == self)
         {
           continue;
         }
-        if (person.get_relationship() == Global::SPOUSE)
+        if (person.get_relationship() == Global.SPOUSE)
         {
           return person;
         }
@@ -358,10 +599,10 @@ namespace Fred
       // select oldest available person
       int max_age = self.get_age();
 
-      Person* oldest = null;
+      Person oldest = null;
       for (int i = 0; i < N; ++i)
       {
-        Person* person = h.get_enrollee(i);
+        var person = h.get_enrollee(i);
         if (person.get_age() <= max_age || person == self)
         {
           continue;
@@ -369,62 +610,31 @@ namespace Fred
         oldest = person;
         max_age = oldest.get_age();
       }
+
       return oldest;
     }
 
-    void terminate(Person* self)
+    private void delete_intentions()
     {
-      if (!Global::Enable_Behaviors)
-      {
-        return;
-      }
-      if (this.health_decision_maker != null)
-      {
-        return;
-      }
-      if (Global::Verbose > 1)
-      {
-        printf("terminating behavior for agent %d age %d\n", self.get_id(), self.get_age());
-      }
-
-      // see if this person is the adult decision maker for any child in the household
-      Household* hh = static_cast<Household*>(self.get_household());
-      if (hh == null)
-      {
-        if (Global::Enable_Hospitals && self.is_hospitalized() && self.get_permanent_household() != null)
-        {
-          hh = static_cast<Household*>(self.get_permanent_household()); ;
-        }
-      }
-      int size = hh.get_size();
-      for (int i = 0; i < size; ++i)
-      {
-        Person child = hh.get_enrollee(i);
-        if (child != self && child.get_health_decision_maker() == self)
-        {
-          if (Global::Verbose > 1)
-          {
-            printf("need new decision maker for agent %d age %d\n", child.get_id(), child.get_age());
-          }
-          child.setup_behavior();
-          if (Global::Verbose > 1)
-          {
-            printf("new decision maker is %d age %d\n", child.get_health_decision_maker().get_id(),
-             child.get_health_decision_maker().get_age());
-            fflush(stdout);
-          }
-        }
-      }
+      this.intention = null;
     }
 
-    void become_health_decision_maker(Person self)
+    private bool CheckBehavior(int n)
     {
-      if (this.health_decision_maker != null)
+      Utils.assert(Global.Enable_Behaviors == true);
+      var my_intention = this.intention[n];
+      if (my_intention == null)
       {
-        this.health_decision_maker = null;
-        delete_intentions();
-        setup_intentions(self);
+        return false;
       }
+
+      var bParams = behavior_params[n];
+      if (!bParams.enabled)
+      {
+        return false;
+      }
+
+      return my_intention.agree();
     }
   }
 }

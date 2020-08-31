@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Fred
 {
@@ -11,9 +9,15 @@ namespace Fred
     {
     }
 
-    protected override void report_disease_specific_stats(DateTime day)
+    public override void report_disease_specific_stats(int day)
     {
-      base.report_disease_specific_stats(day);
+      int hiv_count = day;
+      track_value(day, "HIV", hiv_count);
+    }
+
+    public override void end_of_run()
+    {
+      Console.WriteLine("HIV Epidemic finished");
     }
   }
 }

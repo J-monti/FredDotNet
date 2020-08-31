@@ -1,94 +1,69 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Fred
 {
   public class Perceptions
   {
-    static double[] memory_decay_distr = new double[2] { 0.0, 0.0 };
-    static bool parameters_set = false;
+    public static double[] memory_decay_distr = new double[2] { 0.0, 0.0 };
+    public static bool parameters_set;
 
-    public Perceptions(Person* p)
+    private Person self;
+    private Epidemic epidemic;
+    private double[] perceived_severity;
+    private double[] perceived_susceptibility;
+    private double[,] perceived_benefits;
+    private double[,] perceived_barriers;
+    private double memory_decay;
+
+    protected Perceptions() { }
+    public Perceptions(Person self)
     {
       this.self = p;
 
-      if (Perceptions::parameters_set == false)
+      if (Perceptions.parameters_set == false)
         get_parameters();
 
       // individual differences:
-      this.memory_decay = Random::draw_normal(Perceptions::memory_decay_distr[0], Perceptions::memory_decay_distr[1]);
+      this.memory_decay = FredRandom.Normal(memory_decay_distr[0], memory_decay_distr[1]);
       if (this.memory_decay < 0.00001)
       {
         this.memory_decay = 0.00001;
       }
 
-      this.perceived_susceptibility = new double[Global::Diseases.get_number_of_diseases()];
-      this.perceived_severity = new double[Global::Diseases.get_number_of_diseases()];
-      for (int b = 0; b < Behavior_index::NUM_BEHAVIORS; b++)
-      {
-        this.perceived_benefits[b] = new double[Global::Diseases.get_number_of_diseases()];
-        this.perceived_barriers[b] = new double[Global::Diseases.get_number_of_diseases()];
-      }
-
-      for (int d = 0; d < Global::Diseases.get_number_of_diseases(); d++)
+      this.perceived_susceptibility = new double[Global.Diseases.get_number_of_diseases()];
+      this.perceived_severity = new double[Global.Diseases.get_number_of_diseases()];
+      this.perceived_benefits = new double[(int)Behavior_index.NUM_BEHAVIORS, Global.Diseases.get_number_of_diseases()];
+      this.perceived_barriers = new double[(int)Behavior_index.NUM_BEHAVIORS, Global.Diseases.get_number_of_diseases()];
+      for (int d = 0; d < Global.Diseases.get_number_of_diseases(); d++)
       {
         this.perceived_susceptibility[d] = 0.0;
         this.perceived_severity[d] = 0.0;
-        for (int b = 0; b < Behavior_index::NUM_BEHAVIORS; b++)
+        for (int b = 0; b < (int)Behavior_index.NUM_BEHAVIORS; b++)
         {
-          this.perceived_benefits[b][d] = 1.0;
-          this.perceived_barriers[b][d] = 0.0;
+          this.perceived_benefits[b, d] = 1.0;
+          this.perceived_barriers[b, d] = 0.0;
         }
       }
     }
 
-    void get_parameters()
+    public void get_parameters()
     {
-      char param_str[FRED_STRING_SIZE];
-      sprintf(param_str, "memory_decay");
-      int n = Params::get_param_vector(param_str, Perceptions::memory_decay_distr);
-      if (n != 2)
+      memory_decay_distr = FredParameters.GetParameterList<double>("memory_decay").ToArray();
+      int n = memory_decay_distr.Length;
+      if (memory_decay_distr.Length != 2)
       {
-        Utils::fred_abort("bad %s\n", param_str);
+        Utils.fred_abort("bad memory_decay");
       }
-      Perceptions::parameters_set = true;
+
+      parameters_set = true;
     }
 
-    void update(int day)
+    public void update(int day)
     {
       update_perceived_severity(day);
       update_perceived_susceptibility(day);
       update_perceived_benefits(day);
       update_perceived_barriers(day);
-    }
-
-    void update_perceived_severity(int day)
-    {
-      for (int d = 0; d < Global::Diseases.get_number_of_diseases(); d++)
-      {
-        this.perceived_severity[d] = 1.0;
-      }
-    }
-
-    void update_perceived_susceptibility(int day)
-    {
-      for (int d = 0; d < Global::Diseases.get_number_of_diseases(); d++)
-      {
-        this.epidemic = Global::Diseases.get_disease(d).get_epidemic();
-        this.perceived_susceptibility[d] = 100.0 * this.epidemic.get_symptomatic_prevalence();
-        // printf("update_per_sus: %f\n", perceived_susceptibility[d]);
-      }
-    }
-
-    void update_perceived_benefits(int day)
-    {
-      return;
-    }
-
-    void update_perceived_barriers(int day)
-    {
-      return;
     }
 
     public double get_perceived_severity(int disease_id)
@@ -103,12 +78,34 @@ namespace Fred
 
     public double get_perceived_benefits(int behavior_id, int disease_id)
     {
-      return this.perceived_benefits[behavior_id][disease_id];
+      return this.perceived_benefits[behavior_id, disease_id];
     }
 
     public double get_perceived_barriers(int behavior_id, int disease_id)
     {
-      return this.perceived_barriers[behavior_id][disease_id];
+      return this.perceived_barriers[behavior_id, disease_id];
     }
+
+    // update methods
+    private void update_perceived_severity(int day)
+    {
+      for (int d = 0; d < Global.Diseases.get_number_of_diseases(); d++)
+      {
+        this.perceived_severity[d] = 1.0;
+      }
+    }
+
+    private void update_perceived_susceptibility(int day)
+    {
+      for (int d = 0; d < Global.Diseases.get_number_of_diseases(); d++)
+      {
+        this.epidemic = Global.Diseases.get_disease(d).get_epidemic();
+        this.perceived_susceptibility[d] = 100.0 * this.epidemic.get_symptomatic_prevalence();
+        // printf("update_per_sus: %f\n", perceived_susceptibility[d]);
+      }
+    }
+
+    private void update_perceived_benefits(int day) { }
+    private void update_perceived_barriers(int day) { }
   }
 }

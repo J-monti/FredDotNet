@@ -1,135 +1,73 @@
 ﻿namespace Fred
 {
-  public enum Gender
+  public enum Activity_index
   {
-    Male = 0,
-    Female,
+    HOUSEHOLD_ACTIVITY,
+    NEIGHBORHOOD_ACTIVITY,
+    SCHOOL_ACTIVITY,
+    CLASSROOM_ACTIVITY,
+    WORKPLACE_ACTIVITY,
+    OFFICE_ACTIVITY,
+    HOSPITAL_ACTIVITY,
+    AD_HOC_ACTIVITY,
+    DAILY_ACTIVITY_LOCATIONS
   }
 
-  public enum BehaviorEnum
+  public enum Behavior_index
   {
-    TakeSickLeave = 0,
-    StayHomeWhenSick,
-    KeepChildHomeWhenSick,
-    AcceptVaccine,
-    AcceptVaccineDose,
-    AcceptVaccineForChild,
-    AcceptVaccineDoseForChild,
-    NumBehaviors
+    TAKE_SICK_LEAVE,
+    STAY_HOME_WHEN_SICK,
+    KEEP_CHILD_HOME_WHEN_SICK,
+    ACCEPT_VACCINE,
+    ACCEPT_VACCINE_DOSE,
+    ACCEPT_VACCINE_FOR_CHILD,
+    ACCEPT_VACCINE_DOSE_FOR_CHILD,
+    NUM_BEHAVIORS
   }
 
-  public enum BehaviorChangeEnum
+  public enum Behavior_change_model_enum
   {
-    Refuse = 0,
-    Accept,
-    Flip,
-    ImitatePrevalence,
-    ImitateConsensus,
-    ImitateCount,
-    Hbm,
-    NumBehaviorChangeModels
+    REFUSE,
+    ACCEPT,
+    FLIP,
+    IMITATE_PREVALENCE,
+    IMITATE_CONSENSUS,
+    IMITATE_COUNT,
+    HBM,
+    NUM_BEHAVIOR_CHANGE_MODELS
   }
 
-  public enum Intervention
+  public enum Chronic_condition_index
   {
-    TakesVaccine = 0,
-    TakesAV = 1,
+    ASTHMA,
+    COPD, //Chronic Obstructive Pulmonary Disease
+    CHRONIC_RENAL_DISEASE,
+    DIABETES,
+    HEART_DISEASE,
+    HYPERTENSION,
+    HYPERCHOLESTROLEMIA,
+    CHRONIC_MEDICAL_CONDITIONS
   }
 
-  enum Activity
+  public enum Insurance_assignment_index
   {
-    Household,
-    Neighborhood,
-    School,
-    Classroom,
-    Workplace,
-    Office,
-    Hospital,
-    AdHoc,
-    DailyLocations
+    PRIVATE,
+    MEDICARE,
+    MEDICAID,
+    HIGHMARK,
+    UPMC,
+    UNINSURED,
+    UNSET
   }
 
-  public enum Profile
+  public enum Intervention_flag
   {
-    Unknown = 0,
-    Infant,
-    Preschool,
-    Student,
-    Teacher,
-    Worker,
-    WeekendWorker,
-    Unemployeed,
-    Retired,
-    Prisoner,
-    CollegeStudent,
-    Military,
-    NursingHomeResident,
+    TAKES_VACCINE,
+    TAKES_AV
   }
 
-  public enum PlaceType
+  public enum Household_income_level_code
   {
-    Unset = 0,// = 'U',
-    Household,// = 'H',
-    Neighborhood,// = 'N',
-    School,// = 'S',
-    Classroom,// = 'C',
-    Workplace,// = 'W',
-    Office,// = 'O',
-    Hospital,// = 'M',
-    Community,// = 'X',
-  }
-
-  public enum PlaceSubType
-  {
-    None = 0,// = 'X',
-    College,// = 'C',
-    Prison,// = 'P',
-    MilitaryBase,// = 'M',
-    NursingHome,// = 'N',
-    HEalthcareClinic,// = 'I',
-    MobileHealthcareClinic,// = 'Z'
-  }
-
-  public enum NetworkSubType
-  {
-    None = 0,
-    Transmission,
-    SexualPartner,
-  }
-
-  public enum ChronicCondition
-  {
-    Asthma = 0,
-    Copd, // Chronic Obstructive Pulmonary Disease
-    ChronicRenalDisease,
-    Diabetes,
-    HeartDisease,
-    Hypertension,
-    Hypercholestrolemia,
-    ChronicMedicalConditions
-  }
-
-  public enum InsuranceAssignment
-  {
-    Private,
-    Medicare,
-    Medicaid,
-    Highmark,
-    Upmc,
-    Uninsured,
-    Unset
-  }
-
-  public enum TransmissionMode
-  {
-    Respiratory = 0,
-    Vector,
-    Sexual
-  }
-
-  public enum HouseholdIncomeLevel
-  {
-    UNCLASSIFIED,
     CAT_I,
     CAT_II,
     CAT_III,
@@ -137,9 +75,10 @@
     CAT_V,
     CAT_VI,
     CAT_VII,
+    UNCLASSIFIED
   }
 
-  public enum HouseholdExtendedAbsence
+  public enum Household_extended_absence_index
   {
     HAS_HOSPITALIZED,
     //HAS_IN_PRISON,
@@ -148,27 +87,12 @@
     HOUSEHOLD_EXTENDED_ABSENCE
   }
 
-  public enum Household_visitation_place_index
+  enum Household_visitation_place_index
   {
     HOSPITAL,
     //PRISON,
     //NURSING_HOME,
     //COLLEGE_DORM,
     HOUSEHOLD_VISITATION
-  }
-
-  public enum VaccinePriority
-  {
-    No,
-    Age,
-    Acip
-  }
-
-  public enum VaccineDosePriority
-  {
-    No,
-    First,
-    Random,
-    Last
   }
 }

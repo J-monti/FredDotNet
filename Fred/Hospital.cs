@@ -1,511 +1,526 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Fred
 {
   public class Hospital : Place
   {
-    double Hospital::contacts_per_day;
-    double** Hospital::prob_transmission_per_contact;
-    std::vector<double> Hospital::Hospital_health_insurance_prob;
+    private static double contacts_per_day;
+    private static double[,] prob_transmission_per_contact;
+    private static List<double> Hospital_health_insurance_prob;
+    private static double HAZEL_disaster_capacity_multiplier = 1.0;
+    private static int HAZEL_mobile_van_open_delay;
+    private static int HAZEL_mobile_van_closure_day;
+    private static Dictionary<string, HAZEL_Hospital_Init_Data> HAZEL_hospital_init_map;
+    private static bool HAZEL_hospital_init_map_file_exists;
+    private static List<double> HAZEL_reopening_CDF;
 
-    bool Hospital::HAZEL_hospital_init_map_file_exists = false;
-    double Hospital::HAZEL_disaster_capacity_multiplier = 1.0;
-    int Hospital::HAZEL_mobile_van_open_delay = 0;
-    int Hospital::HAZEL_mobile_van_closure_day = 0;
-    std::vector<double> Hospital::HAZEL_reopening_CDF;
-    HospitalInitMapT Hospital::HAZEL_hospital_init_map;
+    private int bed_count;
+    private int occupied_bed_count;
+    private int daily_patient_capacity;
+    private int current_daily_patient_count;
+    private bool add_capacity;
+    private bool HAZEL_closure_dates_have_been_set;
 
-    Hospital::Hospital() : Place()
+    private const int HOSP_ID = 0;
+    private const int PNL_WK = 1;
+    private const int ACCPT_PRIV = 2;
+    private const int ACCPT_MEDICR = 3;
+    private const int ACCPT_MEDICD = 4;
+    private const int ACCPT_HGHMRK = 5;
+    private const int ACCPT_UPMC = 6;
+    private const int ACCPT_UNINSRD = 7;
+    private const int REOPEN_AFTR_DAYS = 8;
+    private const int IS_MOBILE = 9;
+    private const int ADD_CAPACITY = 10;
+
+    // true if a the hospital accepts the indexed Insurance Coverage
+    private BitArray accepted_insurance_bitset = new BitArray((int)Insurance_assignment_index.UNSET);
+
+    static Hospital()
     {
-      this->set_type(Place::TYPE_HOSPITAL);
-      this->set_subtype(Place::SUBTYPE_NONE);
-      this->bed_count = 0;
-      this->occupied_bed_count = 0;
-      this->daily_patient_capacity = -1;
-      this->current_daily_patient_count = 0;
-      this->add_capacity = false;
+    }
 
-      if (Global::Enable_Health_Insurance)
+    /**
+   * Default constructor
+   * Note: really only used by Allocator
+   */
+    public Hospital()
+    {
+      this.set_subtype(Place.SUBTYPE_NONE);
+      this.Init();
+    }
+
+    /**
+     * Constructor with necessary parameters
+     */
+    public Hospital(string label, char _subtype, FredGeo lon, FredGeo lat)
+      : base(label, lon, lat)
+    {
+      this.set_subtype(_subtype);
+      this.Init();
+    }
+
+    private void Init()
+    {
+      this.set_type(Place.TYPE_HOSPITAL);
+      this.bed_count = 0;
+      this.occupied_bed_count = 0;
+      this.daily_patient_capacity = -1;
+      this.current_daily_patient_count = 0;
+      this.add_capacity = false;
+
+      if (Global.Enable_Health_Insurance)
       {
-        vector<double>::iterator itr;
-        int insr = static_cast<int>(Insurance_assignment_index::PRIVATE);
-        for (itr = Hospital::Hospital_health_insurance_prob.begin(); itr != Hospital::Hospital_health_insurance_prob.end(); ++itr, ++insr)
+        int index = 0;
+        var values = Enum.GetValues(typeof(Insurance_assignment_index));
+        foreach (Insurance_assignment_index value in values)
         {
-          set_accepts_insurance(insr, (Random::draw_random() < *itr));
+          set_accepts_insurance(value, FredRandom.NextDouble() < Hospital_health_insurance_prob[index]);
+          index++;
         }
       }
 
-      if (Global::Enable_HAZEL && Hospital::HAZEL_hospital_init_map_file_exists)
+      if (Global.Enable_HAZEL && Hospital.HAZEL_hospital_init_map_file_exists)
       {
         //Use the values read in from the map file
-        if (Hospital::HAZEL_hospital_init_map.find(string(this->get_label())) != Hospital::HAZEL_hospital_init_map.end())
+        if (Hospital.HAZEL_hospital_init_map.ContainsKey(this.get_label()))
         {
-          HAZEL_Hospital_Init_Data init_data = Hospital::HAZEL_hospital_init_map.find(string(this->get_label()))->second;
-          this->set_accepts_insurance(Insurance_assignment_index::HIGHMARK, init_data.accpt_highmark);
-          this->set_accepts_insurance(Insurance_assignment_index::MEDICAID, init_data.accpt_medicaid);
-          this->set_accepts_insurance(Insurance_assignment_index::MEDICARE, init_data.accpt_medicare);
-          this->set_accepts_insurance(Insurance_assignment_index::PRIVATE, init_data.accpt_private);
-          this->set_accepts_insurance(Insurance_assignment_index::UNINSURED, init_data.accpt_uninsured);
-          this->set_accepts_insurance(Insurance_assignment_index::UPMC, init_data.accpt_upmc);
+          var init_data = Hospital.HAZEL_hospital_init_map[this.get_label()];
+          this.set_accepts_insurance(Insurance_assignment_index.HIGHMARK, init_data.accpt_highmark);
+          this.set_accepts_insurance(Insurance_assignment_index.MEDICAID, init_data.accpt_medicaid);
+          this.set_accepts_insurance(Insurance_assignment_index.MEDICARE, init_data.accpt_medicare);
+          this.set_accepts_insurance(Insurance_assignment_index.PRIVATE, init_data.accpt_private);
+          this.set_accepts_insurance(Insurance_assignment_index.UNINSURED, init_data.accpt_uninsured);
+          this.set_accepts_insurance(Insurance_assignment_index.UPMC, init_data.accpt_upmc);
           if (init_data.is_mobile)
           {
-            this->set_subtype(Place::SUBTYPE_MOBILE_HEALTHCARE_CLINIC);
+            this.set_subtype(Place.SUBTYPE_MOBILE_HEALTHCARE_CLINIC);
           }
-          this->set_daily_patient_capacity((init_data.panel_week / 5) + 1);
-          this->add_capacity = init_data.add_capacity;
+          this.set_daily_patient_capacity((init_data.panel_week / 5) + 1);
+          this.add_capacity = init_data.add_capacity;
         }
       }
     }
 
-    Hospital::Hospital(const char* lab, char _subtype, fred::geo lon, fred::geo lat) : Place(lab, lon, lat)
+    public static void get_parameters()
     {
-      this->set_type(Place::TYPE_HOSPITAL);
-      this->set_subtype(_subtype);
-      this->bed_count = 0;
-      this->occupied_bed_count = 0;
-      this->daily_patient_capacity = -1;
-      this->current_daily_patient_count = 0;
-      this->add_capacity = false;
-
-      if (Global::Enable_Health_Insurance)
+      FredParameters.GetParameter("hospital_contacts", ref Hospital.contacts_per_day);
+      prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("hospital_trans_per_contact");
+      var n = Hospital.prob_transmission_per_contact.Length;
+      if (Global.Verbose > 1)
       {
-        vector<double>::iterator itr;
-        int insr = static_cast<int>(Insurance_assignment_index::PRIVATE);
-        for (itr = Hospital::Hospital_health_insurance_prob.begin(); itr != Hospital::Hospital_health_insurance_prob.end(); ++itr, ++insr)
-        {
-          set_accepts_insurance(insr, (Random::draw_random() < *itr));
-        }
-      }
-
-      if (Global::Enable_HAZEL && Hospital::HAZEL_hospital_init_map_file_exists)
-      {
-        //Use the values read in from the map file
-        if (Hospital::HAZEL_hospital_init_map.find(string(this->get_label())) != Hospital::HAZEL_hospital_init_map.end())
-        {
-          HAZEL_Hospital_Init_Data init_data = Hospital::HAZEL_hospital_init_map.find(string(this->get_label()))->second;
-          this->set_accepts_insurance(Insurance_assignment_index::HIGHMARK, init_data.accpt_highmark);
-          this->set_accepts_insurance(Insurance_assignment_index::MEDICAID, init_data.accpt_medicaid);
-          this->set_accepts_insurance(Insurance_assignment_index::MEDICARE, init_data.accpt_medicare);
-          this->set_accepts_insurance(Insurance_assignment_index::PRIVATE, init_data.accpt_private);
-          this->set_accepts_insurance(Insurance_assignment_index::UNINSURED, init_data.accpt_uninsured);
-          this->set_accepts_insurance(Insurance_assignment_index::UPMC, init_data.accpt_upmc);
-          if (init_data.is_mobile)
-          {
-            this->set_subtype(Place::SUBTYPE_MOBILE_HEALTHCARE_CLINIC);
-          }
-          this->set_daily_patient_capacity((init_data.panel_week / 5) + 1);
-          this->add_capacity = init_data.add_capacity;
-        }
-      }
-    }
-
-
-
-    bool accepts_insurance(Insurance_assignment_index::e insr)
-    {
-      return this->accepted_insurance_bitset[static_cast<int>(insr)];
-    }
-
-    void set_bed_count(int _bed_count)
-    {
-      this->bed_count = _bed_count;
-    }
-
-    void set_daily_patient_capacity(int _capacity)
-    {
-      this->daily_patient_capacity = _capacity;
-    }
-
-    int get_current_daily_patient_count()
-    {
-      return this->current_daily_patient_count;
-    }
-
-    void increment_current_daily_patient_count()
-    {
-      this->current_daily_patient_count++;
-    }
-
-    void reset_current_daily_patient_count()
-    {
-      this->current_daily_patient_count = 0;
-    }
-
-    int get_occupied_bed_count()
-    {
-      return this->occupied_bed_count;
-    }
-
-    void increment_occupied_bed_count()
-    {
-      this->occupied_bed_count++;
-    }
-
-    void decrement_occupied_bed_count()
-    {
-      this->occupied_bed_count--;
-    }
-
-    void reset_occupied_bed_count()
-    {
-      this->occupied_bed_count = 0;
-    }
-
-    void have_HAZEL_closure_dates_been_set(bool is_set)
-    {
-      this->HAZEL_closure_dates_have_been_set = is_set;
-    }
-
-    static int get_HAZEL_mobile_van_open_delay()
-    {
-      return Hospital::HAZEL_mobile_van_open_delay;
-    }
-
-    static int get_HAZEL_mobile_van_closure_day()
-    {
-      return Hospital::HAZEL_mobile_van_closure_day;
-    }
-    void Hospital::get_parameters()
-    {
-      Params::get_param_from_string("hospital_contacts", &Hospital::contacts_per_day);
-      int n = Params::get_param_matrix((char*)"hospital_trans_per_contact", &Hospital::prob_transmission_per_contact);
-      if (Global::Verbose > 1)
-      {
-        printf("\nHospital contact_prob:\n");
+        Console.WriteLine("\nHospital contact_prob:\n");
         for (int i = 0; i < n; ++i)
         {
           for (int j = 0; j < n; ++j)
           {
-            printf("%f ", Hospital::prob_transmission_per_contact[i][j]);
+            Console.WriteLine("%f ", Hospital.prob_transmission_per_contact[i, j]);
           }
-          printf("\n");
+          Console.WriteLine("\n");
         }
       }
 
-      if (Global::Enable_HAZEL)
+      if (Global.Enable_HAZEL)
       {
-        char HAZEL_hosp_init_file_name[FRED_STRING_SIZE];
-        char hosp_init_file_dir[FRED_STRING_SIZE];
+        string HAZEL_hosp_init_file_name = string.Empty;
+        string hosp_init_file_dir = string.Empty;
 
-        Params::get_param_vector((char*)"HAZEL_reopening_CDF", Hospital::HAZEL_reopening_CDF);
-        Params::get_param_from_string("HAZEL_disaster_capacity_multiplier", &Hospital::HAZEL_disaster_capacity_multiplier);
-        Params::get_param_from_string("HAZEL_mobile_van_open_delay", &Hospital::HAZEL_mobile_van_open_delay);
-        Params::get_param_from_string("HAZEL_mobile_van_closure_day", &Hospital::HAZEL_mobile_van_closure_day);
+        HAZEL_reopening_CDF = FredParameters.GetParameterList<double>("HAZEL_reopening_CDF");
+        FredParameters.GetParameter("HAZEL_disaster_capacity_multiplier", ref Hospital.HAZEL_disaster_capacity_multiplier);
+        FredParameters.GetParameter("HAZEL_mobile_van_open_delay", ref Hospital.HAZEL_mobile_van_open_delay);
+        FredParameters.GetParameter("HAZEL_mobile_van_closure_day", ref Hospital.HAZEL_mobile_van_closure_day);
 
-        Params::get_param_from_string("HAZEL_hospital_init_file_directory", hosp_init_file_dir);
-        Params::get_param_from_string("HAZEL_hospital_init_file_name", HAZEL_hosp_init_file_name);
-        if (strcmp(HAZEL_hosp_init_file_name, "none") == 0)
+        FredParameters.GetParameter("HAZEL_hospital_init_file_directory", ref hosp_init_file_dir);
+        FredParameters.GetParameter("HAZEL_hospital_init_file_name", ref HAZEL_hosp_init_file_name);
+        if (HAZEL_hosp_init_file_name == "none")
         {
-          Hospital::HAZEL_hospital_init_map_file_exists = false;
+          Hospital.HAZEL_hospital_init_map_file_exists = false;
         }
         else
         {
-          FILE* HAZEL_hosp_init_map_fp = NULL;
-
-          char filename[FRED_STRING_SIZE];
-          sprintf(filename, "%s%s", hosp_init_file_dir, HAZEL_hosp_init_file_name);
-          HAZEL_hosp_init_map_fp = Utils::fred_open_file(filename);
-          if (HAZEL_hosp_init_map_fp != NULL)
+          var hazelFile = $"{hosp_init_file_dir}{HAZEL_hosp_init_file_name}";
+          if (File.Exists(hazelFile))
           {
-            Hospital::HAZEL_hospital_init_map_file_exists = true;
-        enum column_index
-    {
-      HOSP_ID = 0,
-      PNL_WK = 1,
-      ACCPT_PRIV = 2,
-      ACCPT_MEDICR = 3,
-      ACCPT_MEDICD = 4,
-      ACCPT_HGHMRK = 5,
-      ACCPT_UPMC = 6,
-      ACCPT_UNINSRD = 7,
-      REOPEN_AFTR_DAYS = 8,
-      IS_MOBILE = 9,
-      ADD_CAPACITY = 10
-    };
+            using var HAZEL_hosp_init_map_fp = new StreamReader(hazelFile);
+            Hospital.HAZEL_hospital_init_map_file_exists = true;
+            while (HAZEL_hosp_init_map_fp.Peek() != -1)
+            {
+              var line = HAZEL_hosp_init_map_fp.ReadLine();
+              var tokens = line.Split(',');
+              // skip header line
+              if (tokens[HOSP_ID] != "sp_id")
+              {
+                char place_type = Place.TYPE_HOSPITAL;
+                string hosp_id_str = $"{place_type }{tokens[HOSP_ID]}";
+                var init_data = new HAZEL_Hospital_Init_Data(tokens[PNL_WK], tokens[ACCPT_PRIV],
+                  tokens[ACCPT_MEDICR], tokens[ACCPT_MEDICD], tokens[ACCPT_HGHMRK],
+                  tokens[ACCPT_UPMC], tokens[ACCPT_UNINSRD], tokens[REOPEN_AFTR_DAYS],
+                  tokens[IS_MOBILE], tokens[ADD_CAPACITY]);
 
-    char line_str[255];
-    int temp_int = 0;
-    Utils::Tokens tokens;
-        for(char* line = line_str; fgets(line, 255, HAZEL_hosp_init_map_fp); line = line_str) {
-          tokens = Utils::split_by_delim(line, ',', tokens, false);
-          // skip header line
-          if(strcmp(tokens[HOSP_ID], "sp_id") != 0) {
-            char place_type = Place::TYPE_HOSPITAL;
-    char s[80];
-    sprintf(s, "%c%s", place_type, tokens[HOSP_ID]);
-    string hosp_id_str(s);
-    HAZEL_Hospital_Init_Data init_data = HAZEL_Hospital_Init_Data(tokens[PNL_WK], tokens[ACCPT_PRIV],
-      tokens[ACCPT_MEDICR], tokens[ACCPT_MEDICD], tokens[ACCPT_HGHMRK],
-      tokens[ACCPT_UPMC], tokens[ACCPT_UNINSRD], tokens[REOPEN_AFTR_DAYS],
-      tokens[IS_MOBILE], tokens[ADD_CAPACITY]);
-
-    Hospital::HAZEL_hospital_init_map.insert(std::pair<string, HAZEL_Hospital_Init_Data>(hosp_id_str, init_data));
+                Hospital.HAZEL_hospital_init_map.Add(hosp_id_str, init_data);
+              }
+            }
+            HAZEL_hosp_init_map_fp.Dispose();
           }
-  tokens.clear();
         }
-fclose(HAZEL_hosp_init_map_fp);
+      }
+
+      if (Global.Enable_Health_Insurance || (Global.Enable_HAZEL && !Hospital.HAZEL_hospital_init_map_file_exists))
+      {
+        Hospital_health_insurance_prob = FredParameters.GetParameterList<double>("hospital_health_insurance_prob");
+        Utils.assert((int)(Hospital.Hospital_health_insurance_prob.Count) == (int)(Insurance_assignment_index.UNSET));
       }
     }
-  }
 
-  if(Global::Enable_Health_Insurance || (Global::Enable_HAZEL && !Hospital::HAZEL_hospital_init_map_file_exists)) {
-    Params::get_param_vector((char*)"hospital_health_insurance_prob", Hospital::Hospital_health_insurance_prob);
-    assert(static_cast<int>(Hospital::Hospital_health_insurance_prob.size()) == static_cast<int>(Insurance_assignment_index::UNSET));
-  }
-}
-
-int Hospital::get_group(int disease, Person* per)
-{
-  // 0 - Healthcare worker
-  // 1 - Patient
-  // 2 - Visitor
-  if (per->get_activities()->is_hospital_staff() && !per->is_hospitalized())
-  {
-    return 0;
-  }
-
-  Place* hosp = per->get_activities()->get_hospital();
-  if (hosp != NULL && hosp->get_id() == this->get_id())
-  {
-    return 1;
-  }
-  else
-  {
-    return 2;
-  }
-}
-
-double Hospital::get_transmission_prob(int disease, Person* i, Person* s)
-{
-  // i = infected agent
-  // s = susceptible agent
-  int row = get_group(disease, i);
-  int col = get_group(disease, s);
-  double tr_pr = Hospital::prob_transmission_per_contact[row][col];
-  return tr_pr;
-}
-
-int Hospital::get_bed_count(int sim_day)
-{
-  if (Global::Enable_HAZEL)
-  {
-    if (sim_day < Place_List::get_HAZEL_disaster_end_sim_day())
+    /**
+     * @see Place.get_group(int disease, Person* per)
+     */
+    public override int get_group(int disease, Person per)
     {
-      return this->bed_count;
-    }
-    else
-    {
-      if (this->add_capacity)
+      // 0 - Healthcare worker
+      // 1 - Patient
+      // 2 - Visitor
+      if (per.get_activities().is_hospital_staff() && !per.is_hospitalized())
       {
-        return static_cast<int>(ceil(Hospital::HAZEL_disaster_capacity_multiplier * this->bed_count));
+        return 0;
+      }
+
+      var hosp = per.get_activities().get_hospital();
+      if (hosp != null && hosp.get_id() == this.get_id())
+      {
+        return 1;
       }
       else
       {
-        return this->bed_count;
+        return 2;
       }
     }
-  }
-  else
-  {
-    return this->bed_count;
-  }
-}
 
-int Hospital::get_daily_patient_capacity(int sim_day)
-{
-  if (Global::Enable_HAZEL)
-  {
-    if (sim_day < Place_List::get_HAZEL_disaster_end_sim_day())
+    /**
+     * @see Mixing_Group.get_transmission_prob(int disease, Person* i, Person* s)
+     *
+     * This method returns the value from the static array <code>Hospital.Hospital_contact_prob</code> that
+     * corresponds to a particular age-related value for each person.<br />
+     * The static array <code>Hospital_contact_prob</code> will be filled with values from the parameter
+     * file for the key <code>hospital_prob[]</code>.
+     */
+    public override double get_transmission_prob(int disease, Person i, Person s)
     {
-      return this->daily_patient_capacity;
+      // i = infected agent
+      // s = susceptible agent
+      int row = get_group(disease, i);
+      int col = get_group(disease, s);
+      double tr_pr = prob_transmission_per_contact[row, col];
+      return tr_pr;
     }
-    else
+
+    /**
+     * @see Place.get_contacts_per_day(int disease)
+     *
+     * This method returns the value from the static array <code>Hospital.Hospital_contacts_per_day</code>
+     * that corresponds to a particular disease.<br />
+     * The static array <code>Hospital_contacts_per_day</code> will be filled with values from the parameter
+     * file for the key <code>hospital_contacts[]</code>.
+     */
+    public override double get_contacts_per_day(int disease)
     {
-      if (this->add_capacity)
-      {
-        return static_cast<int>(ceil(Hospital::HAZEL_disaster_capacity_multiplier * this->daily_patient_capacity));
-      }
-      else
-      {
-        return this->daily_patient_capacity;
-      }
+      return contacts_per_day;
     }
-  }
-  else
-  {
-    return this->daily_patient_capacity;
-  }
-}
 
-double Hospital::get_contacts_per_day(int disease)
-{
-  return Hospital::contacts_per_day;
-}
-
-bool Hospital::is_open(int sim_day)
-{
-  bool open = (sim_day < this->close_date || this->open_date <= sim_day);
-  return open;
-}
-
-bool Hospital::should_be_open(int sim_day)
-{
-
-  if (Global::Enable_HAZEL)
-  {
-    if (this->is_mobile_healthcare_clinic())
+    public override bool is_open(int sim_day)
     {
-      if (sim_day <= (Place_List::get_HAZEL_disaster_end_sim_day() + Hospital::HAZEL_mobile_van_open_delay))
-      {
-        //Not open until after disaster ends + some delay
-        return false;
-      }
-      else
-      {
-        assert(this->HAZEL_closure_dates_have_been_set);
-      }
+      return (sim_day < this.close_date || this.open_date <= sim_day);
     }
-    else
+
+    /**
+     * @see Place.should_be_open(int day)
+     *
+     * Determine if the Hospital should be open. This is independent of any disease.
+     *
+     * @param sim_day the simulation day
+     * @return whether or not the hospital is open on the given day for the given disease
+     */
+    public bool should_be_open(int sim_day)
     {
-      // If we haven't made closure decision, do it now
-      if (!this->HAZEL_closure_dates_have_been_set)
+      if (Global.Enable_HAZEL)
       {
-        apply_individual_HAZEL_closure_policy();
-      }
-    }
-  }
-  return is_open(sim_day);
-}
-
-bool Hospital::should_be_open(int sim_day, int disease)
-{
-
-  if (Global::Enable_HAZEL)
-  {
-    return this->should_be_open(sim_day);
-  }
-
-  return is_open(sim_day);
-}
-
-void Hospital::apply_individual_HAZEL_closure_policy()
-{
-  assert(Global::Enable_HAZEL);
-  if (!this->HAZEL_closure_dates_have_been_set)
-  {
-    if (Hospital::HAZEL_hospital_init_map_file_exists)
-    {
-      if (Hospital::HAZEL_hospital_init_map.find(string(this->get_label())) != Hospital::HAZEL_hospital_init_map.end())
-      {
-        HAZEL_Hospital_Init_Data init_data = Hospital::HAZEL_hospital_init_map.find(string(this->get_label()))->second;
-        if (init_data.reopen_after_days > 0)
+        if (this.is_mobile_healthcare_clinic())
         {
-          if (Place_List::get_HAZEL_disaster_start_sim_day() != -1 && Place_List::get_HAZEL_disaster_end_sim_day() != -1)
+          if (sim_day <= (Place_List.get_HAZEL_disaster_end_sim_day() + Hospital.HAZEL_mobile_van_open_delay))
           {
-            this->set_close_date(Place_List::get_HAZEL_disaster_start_sim_day());
-            this->set_open_date(Place_List::get_HAZEL_disaster_end_sim_day() + init_data.reopen_after_days);
-            this->HAZEL_closure_dates_have_been_set = true;
-            return;
+            //Not open until after disaster ends + some delay
+            return false;
+          }
+          else
+          {
+            Utils.assert(this.HAZEL_closure_dates_have_been_set);
           }
         }
-        else if (init_data.reopen_after_days == 0 && !this->is_mobile_healthcare_clinic())
+        else
         {
-          if (Place_List::get_HAZEL_disaster_start_sim_day() != -1 && Place_List::get_HAZEL_disaster_end_sim_day() != -1)
+          // If we haven't made closure decision, do it now
+          if (!this.HAZEL_closure_dates_have_been_set)
           {
-            this->set_open_date(0);
-            this->HAZEL_closure_dates_have_been_set = true;
-            return;
+            apply_individual_HAZEL_closure_policy();
           }
         }
       }
+      return is_open(sim_day);
     }
-  }
-  else
-  {
-    return;
-  }
 
-  if (!this->HAZEL_closure_dates_have_been_set)
-  {
-    int cdf_day = Random::draw_from_cdf_vector(Hospital::HAZEL_reopening_CDF);
-    this->set_close_date(Place_List::get_HAZEL_disaster_start_sim_day());
-    this->set_open_date(Place_List::get_HAZEL_disaster_end_sim_day() + cdf_day);
-    this->HAZEL_closure_dates_have_been_set = true;
-  }
-}
+    /**
+     * @see Place.should_be_open(int day, int disease)
+     *
+     * Determine if the Hospital should be open. It is dependent on the disease and simulation day.
+     *
+     * @param sim_day the simulation day
+     * @param disease an integer representation of the disease
+     * @return whether or not the hospital is open on the given day for the given disease
+     */
+    public override bool should_be_open(int sim_day, int disease)
+    {
+      if (Global.Enable_HAZEL)
+      {
+        return this.should_be_open(sim_day);
+      }
 
-void Hospital::set_accepts_insurance(Insurance_assignment_index::e insr, bool does_accept)
-{
-  assert(insr >= Insurance_assignment_index::PRIVATE);
-  assert(insr < Insurance_assignment_index::UNSET);
-  switch (insr)
-  {
-    case Insurance_assignment_index::PRIVATE:
-      this->accepted_insurance_bitset[Insurance_assignment_index::PRIVATE] = does_accept;
-      break;
-    case Insurance_assignment_index::MEDICARE:
-      this->accepted_insurance_bitset[Insurance_assignment_index::MEDICARE] = does_accept;
-      break;
-    case Insurance_assignment_index::MEDICAID:
-      this->accepted_insurance_bitset[Insurance_assignment_index::MEDICAID] = does_accept;
-      break;
-    case Insurance_assignment_index::HIGHMARK:
-      this->accepted_insurance_bitset[Insurance_assignment_index::HIGHMARK] = does_accept;
-      break;
-    case Insurance_assignment_index::UPMC:
-      this->accepted_insurance_bitset[Insurance_assignment_index::UPMC] = does_accept;
-      break;
-    case Insurance_assignment_index::UNINSURED:
-      this->accepted_insurance_bitset[Insurance_assignment_index::UNINSURED] = does_accept;
-      break;
-    default:
-      Utils::fred_abort("Invalid Insurance Assignment Type", "");
-  }
-}
+      return is_open(sim_day);
+    }
 
-void Hospital::set_accepts_insurance(int insr_indx, bool does_accept)
-{
-  assert(insr_indx >= 0);
-  assert(insr_indx < static_cast<int>(Insurance_assignment_index::UNSET));
-  switch (insr_indx)
-  {
-    case static_cast<int>(Insurance_assignment_index::PRIVATE):
-      set_accepts_insurance(Insurance_assignment_index::PRIVATE, does_accept);
-      break;
-    case static_cast<int>(Insurance_assignment_index::MEDICARE):
-      set_accepts_insurance(Insurance_assignment_index::MEDICARE, does_accept);
-      break;
-    case static_cast<int>(Insurance_assignment_index::MEDICAID):
-      set_accepts_insurance(Insurance_assignment_index::MEDICAID, does_accept);
-      break;
-    case static_cast<int>(Insurance_assignment_index::HIGHMARK):
-      set_accepts_insurance(Insurance_assignment_index::HIGHMARK, does_accept);
-      break;
-    case static_cast<int>(Insurance_assignment_index::UPMC):
-      set_accepts_insurance(Insurance_assignment_index::UPMC, does_accept);
-      break;
-    case static_cast<int>(Insurance_assignment_index::UNINSURED):
-      set_accepts_insurance(Insurance_assignment_index::UNINSURED, does_accept);
-      break;
-    default:
-      Utils::fred_abort("Invalid Insurance Assignment Type", "");
-  }
-}
+    public void set_accepts_insurance(Insurance_assignment_index insr, bool does_accept)
+    {
+      switch (insr)
+      {
+        case Insurance_assignment_index.PRIVATE:
+          this.accepted_insurance_bitset[(int)Insurance_assignment_index.PRIVATE] = does_accept;
+          break;
+        case Insurance_assignment_index.MEDICARE:
+          this.accepted_insurance_bitset[(int)Insurance_assignment_index.MEDICARE] = does_accept;
+          break;
+        case Insurance_assignment_index.MEDICAID:
+          this.accepted_insurance_bitset[(int)Insurance_assignment_index.MEDICAID] = does_accept;
+          break;
+        case Insurance_assignment_index.HIGHMARK:
+          this.accepted_insurance_bitset[(int)Insurance_assignment_index.HIGHMARK] = does_accept;
+          break;
+        case Insurance_assignment_index.UPMC:
+          this.accepted_insurance_bitset[(int)Insurance_assignment_index.UPMC] = does_accept;
+          break;
+        case Insurance_assignment_index.UNINSURED:
+          this.accepted_insurance_bitset[(int)Insurance_assignment_index.UNINSURED] = does_accept;
+          break;
+        default:
+          Utils.fred_abort("Invalid Insurance Assignment Type", "");
+          break;
+      }
+    }
 
-std::string Hospital::to_string()
-{
-  std::stringstream ss;
-  ss << "Hospital[" << this->get_label() << "]: bed_count: " << this->bed_count
-     << ", occupied_bed_count: " << this->occupied_bed_count
-     << ", daily_patient_capacity: " << this->daily_patient_capacity
-     << ", current_daily_patient_count: " << this->current_daily_patient_count
-     << ", add_capacity: " << this->add_capacity
-     << ", HAZEL_closure_dates_have_been_set: " << this->HAZEL_closure_dates_have_been_set
-     << ", subtype: " << this->get_subtype();
+    public void set_accepts_insurance(int insr_indx, bool does_accept)
+    {
+      Utils.assert(insr_indx >= 0);
+      Utils.assert(insr_indx < (int)(Insurance_assignment_index.UNSET));
+      switch (insr_indx)
+      {
+        case (int)(Insurance_assignment_index.PRIVATE):
+          set_accepts_insurance(Insurance_assignment_index.PRIVATE, does_accept);
+          break;
+        case (int)(Insurance_assignment_index.MEDICARE):
+          set_accepts_insurance(Insurance_assignment_index.MEDICARE, does_accept);
+          break;
+        case (int)(Insurance_assignment_index.MEDICAID):
+          set_accepts_insurance(Insurance_assignment_index.MEDICAID, does_accept);
+          break;
+        case (int)(Insurance_assignment_index.HIGHMARK):
+          set_accepts_insurance(Insurance_assignment_index.HIGHMARK, does_accept);
+          break;
+        case (int)(Insurance_assignment_index.UPMC):
+          set_accepts_insurance(Insurance_assignment_index.UPMC, does_accept);
+          break;
+        case (int)(Insurance_assignment_index.UNINSURED):
+          set_accepts_insurance(Insurance_assignment_index.UNINSURED, does_accept);
+          break;
+        default:
+          Utils.fred_abort("Invalid Insurance Assignment Type", "");
+          break;
+      }
+    }
 
-  return ss.str();
-}
+    public bool accepts_insurance(Insurance_assignment_index insr)
+    {
+      return this.accepted_insurance_bitset[(int)insr];
+    }
+
+    public int get_bed_count(int sim_day)
+    {
+      if (Global.Enable_HAZEL)
+      {
+        if (sim_day < Place_List.get_HAZEL_disaster_end_sim_day())
+        {
+          return this.bed_count;
+        }
+        else
+        {
+          if (this.add_capacity)
+          {
+            return Convert.ToInt32(Math.Ceiling(Hospital.HAZEL_disaster_capacity_multiplier * this.bed_count));
+          }
+          else
+          {
+            return this.bed_count;
+          }
+        }
+      }
+      else
+      {
+        return this.bed_count;
+      }
+    }
+
+    public void set_bed_count(int _bed_count)
+    {
+      this.bed_count = _bed_count;
+    }
+
+    public int get_daily_patient_capacity(int sim_day)
+    {
+      if (Global.Enable_HAZEL)
+      {
+        if (sim_day < Place_List.get_HAZEL_disaster_end_sim_day())
+        {
+          return this.daily_patient_capacity;
+        }
+        else
+        {
+          if (this.add_capacity)
+          {
+            return Convert.ToInt32(Math.Ceiling(Hospital.HAZEL_disaster_capacity_multiplier * this.daily_patient_capacity));
+          }
+          else
+          {
+            return this.daily_patient_capacity;
+          }
+        }
+      }
+      else
+      {
+        return this.daily_patient_capacity;
+      }
+    }
+
+    public void set_daily_patient_capacity(int _capacity)
+    {
+      this.daily_patient_capacity = _capacity;
+    }
+
+    public int get_current_daily_patient_count()
+    {
+      return this.current_daily_patient_count;
+    }
+
+    public void increment_current_daily_patient_count()
+    {
+      this.current_daily_patient_count++;
+    }
+
+    public void reset_current_daily_patient_count()
+    {
+      this.current_daily_patient_count = 0;
+    }
+
+    public int get_occupied_bed_count()
+    {
+      return this.occupied_bed_count;
+    }
+
+    public void increment_occupied_bed_count()
+    {
+      this.occupied_bed_count++;
+    }
+
+    public void decrement_occupied_bed_count()
+    {
+      this.occupied_bed_count--;
+    }
+
+    public void reset_occupied_bed_count()
+    {
+      this.occupied_bed_count = 0;
+    }
+
+    public void have_HAZEL_closure_dates_been_set(bool is_set)
+    {
+      this.HAZEL_closure_dates_have_been_set = is_set;
+    }
+
+    public static int get_HAZEL_mobile_van_open_delay()
+    {
+      return HAZEL_mobile_van_open_delay;
+    }
+
+    public static int get_HAZEL_mobile_van_closure_day()
+    {
+      return HAZEL_mobile_van_closure_day;
+    }
+
+    public override string ToString()
+    {
+      return $"Hospital[{this.get_label()}]: bed_count: {this.bed_count}"
+        + $", occupied_bed_count: {this.occupied_bed_count}"
+        + $", daily_patient_capacity: {this.daily_patient_capacity}"
+        + $", current_daily_patient_count: {this.current_daily_patient_count}"
+        + $", add_capacity: {this.add_capacity}"
+        + $", HAZEL_closure_dates_have_been_set: {this.HAZEL_closure_dates_have_been_set}"
+        + $", subtype: {this.get_subtype()}";
+    }
+
+    private void apply_individual_HAZEL_closure_policy()
+    {
+      Utils.assert(Global.Enable_HAZEL);
+      if (!this.HAZEL_closure_dates_have_been_set)
+      {
+        if (Hospital.HAZEL_hospital_init_map_file_exists)
+        {
+          if (Hospital.HAZEL_hospital_init_map.ContainsKey(this.get_label()))
+          {
+            var init_data = Hospital.HAZEL_hospital_init_map[this.get_label()];
+            if (init_data.reopen_after_days > 0)
+            {
+              if (Place_List.get_HAZEL_disaster_start_sim_day() != -1 && Place_List.get_HAZEL_disaster_end_sim_day() != -1)
+              {
+                this.set_close_date(Place_List.get_HAZEL_disaster_start_sim_day());
+                this.set_open_date(Place_List.get_HAZEL_disaster_end_sim_day() + init_data.reopen_after_days);
+                this.HAZEL_closure_dates_have_been_set = true;
+                return;
+              }
+            }
+            else if (init_data.reopen_after_days == 0 && !this.is_mobile_healthcare_clinic())
+            {
+              if (Place_List.get_HAZEL_disaster_start_sim_day() != -1 && Place_List.get_HAZEL_disaster_end_sim_day() != -1)
+              {
+                this.set_open_date(0);
+                this.HAZEL_closure_dates_have_been_set = true;
+                return;
+              }
+            }
+          }
+        }
+      }
+      else
+      {
+        return;
+      }
+
+      if (!this.HAZEL_closure_dates_have_been_set)
+      {
+        int cdf_day = FredRandom.DrawFromCdfVector(Hospital.HAZEL_reopening_CDF);
+        this.set_close_date(Place_List.get_HAZEL_disaster_start_sim_day());
+        this.set_open_date(Place_List.get_HAZEL_disaster_end_sim_day() + cdf_day);
+        this.HAZEL_closure_dates_have_been_set = true;
+      }
+    }
   }
 }

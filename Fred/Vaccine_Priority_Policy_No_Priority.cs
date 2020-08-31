@@ -2,7 +2,7 @@
 {
   public class Vaccine_Priority_Policy_No_Priority : Policy
   {
-    public Vaccine_Priority_Policy_No_Priority(VaccineManager vcm)
+    public Vaccine_Priority_Policy_No_Priority(Vaccine_Manager vcm)
       : base(vcm)
     {
       this.Name = "Vaccine Priority Policy - No Priority";

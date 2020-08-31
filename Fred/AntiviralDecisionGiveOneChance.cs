@@ -1,9 +1,9 @@
 ﻿namespace Fred
 {
-  public class AntiviralDecisionGiveOneChance : Decision
+  public class AV_Decision_Give_One_Chance : Decision
   {
-    public AntiviralDecisionGiveOneChance() { }
-    public AntiviralDecisionGiveOneChance(Policy policy)
+    public AV_Decision_Give_One_Chance() { }
+    public AV_Decision_Give_One_Chance(Policy policy)
       : base(policy)
     {
       //this.Name = "AV Decision to Begin disseminating AVs on a certain day";

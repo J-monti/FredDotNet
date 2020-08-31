@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Fred
 {
-  public class RegionalPatch : AbstractPatch
+  public class RegionalPatch : Abstract_Patch
   {
     private int m_Row;
     private int m_Col;
@@ -200,7 +200,7 @@ namespace Fred
       if (min_staff < 1)
         min_staff = 1;
       int max_staff = (int)(0.5 + 1.25 * staff);
-      //FRED_VERBOSE(1, " staff %d %d %d \n", min_staff, staff, max_staff);
+      //FredUtils.Log(1, " staff %d %d %d \n", min_staff, staff, max_staff);
 
       // find nearest workplace that has right number of employees
       double min_dist = 1e99;
@@ -212,8 +212,8 @@ namespace Fred
 
       double x2 = Geo.GetX(nearby_workplace.GetLongitude());
       double y2 = Geo.GetY(nearby_workplace.GetLatitude());
-      //FRED_VERBOSE(1, "nearby workplace %s %f %f size %d dist %f\n", nearby_workplace->get_label(),
-      //       x2, y2, nearby_workplace->get_size(), min_dist);
+      //FredUtils.Log(1, "nearby workplace %s %f %f size %d dist %f\n", nearby_workplace.get_label(),
+      //       x2, y2, nearby_workplace.get_size(), min_dist);
 
       return nearby_workplace;
     }
@@ -241,7 +241,7 @@ namespace Fred
           {
             min_dist = dist;
             closest_workplace = workplace;
-            // printf("closer = %s size = %d min_dist = %f\n", closest_workplace->get_label(), size, *min_dist);
+            // printf("closer = %s size = %d min_dist = %f\n", closest_workplace.get_label(), size, *min_dist);
             // fflush(stdout);
           }
         }
@@ -262,7 +262,7 @@ namespace Fred
         double percentage = 0.1;
         int people_swapped = 0;
         int people_to_reassign_place = (int)(percentage * this.m_People.Count);
-        //FRED_VERBOSE(1, "People to reassign : %d \n", people_to_reassign_place);
+        //FredUtils.Log(1, "People to reassign : %d \n", people_to_reassign_place);
         for (int k = 0; k < people_to_reassign_place; ++k)
         {
           Person p = this.RandomPerson();
@@ -294,9 +294,9 @@ namespace Fred
                 if (h1_county != h2_county)
                 {
                   p.ChangeSchool(s2);
-                  p2->ChangeSchool(s1);
-                  //FRED_VERBOSE(0, "SWAPSCHOOLS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2->get_id(), p.get_school()->get_label(), p2->get_school()->get_label(), p.get_school()->get_latitude(), p.get_school()->get_longitude(), p2->get_school()->get_latitude(), p2->get_school()->get_longitude());
-                  //printf("SWAPSCHOOLS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2->get_id(), p.get_school()->get_label(), p2->get_school()->get_label(), p.get_school()->get_latitude(), p.get_school()->get_longitude(), p2->get_school()->get_latitude(), p2->get_school()->get_longitude());
+                  p2.ChangeSchool(s1);
+                  //FredUtils.Log(0, "SWAPSCHOOLS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2.get_id(), p.get_school().get_label(), p2.get_school().get_label(), p.get_school().get_latitude(), p.get_school().get_longitude(), p2.get_school().get_latitude(), p2.get_school().get_longitude());
+                  //printf("SWAPSCHOOLS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2.get_id(), p.get_school().get_label(), p2.get_school().get_label(), p.get_school().get_latitude(), p.get_school().get_longitude(), p2.get_school().get_latitude(), p2.get_school().get_longitude());
                   people_swapped++;
                 }
               }
@@ -307,26 +307,26 @@ namespace Fred
               if (p2 != null)
               {
                 Place w1 = p.GetWorkplace();
-                Place w2 = p2->GetWorkplace();
+                Place w2 = p2.GetWorkplace();
                 var h1 = p.GetHousehold();
-                int c1 = h1->get_county_index();
+                int c1 = h1.get_county_index();
                 int h1_county = Global.Places.get_fips_of_county_with_index(c1);
-                var h2 = p2->GetHousehold();
-                int c2 = h2->get_county_index();
+                var h2 = p2.GetHousehold();
+                int c2 = h2.get_county_index();
                 int h2_county = Global.Places.get_fips_of_county_with_index(c2);
                 if (h1_county != h2_county)
                 {
                   p.ChangeWorkplace(w2);
-                  p2->ChangeWorkplace(w1);
-                  //FRED_VERBOSE(0, "SWAPWORKS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2->get_id(), p.get_workplace()->get_label(), p2->get_workplace()->get_label(), p.get_workplace()->get_latitude(), p.get_workplace()->get_longitude(), p2->get_workplace()->get_latitude(), p2->get_workplace()->get_longitude());
-                  //printf("SWAPWORKS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2->get_id(), p.get_workplace()->get_label(), p2->get_workplace()->get_label(), p.get_workplace()->get_latitude(), p.get_workplace()->get_longitude(), p2->get_workplace()->get_latitude(), p2->get_workplace()->get_longitude());
+                  p2.ChangeWorkplace(w1);
+                  //FredUtils.Log(0, "SWAPWORKS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2.get_id(), p.get_workplace().get_label(), p2.get_workplace().get_label(), p.get_workplace().get_latitude(), p.get_workplace().get_longitude(), p2.get_workplace().get_latitude(), p2.get_workplace().get_longitude());
+                  //printf("SWAPWORKS\t%d\t%d\t%s\t%s\t%lg\t%lg\t%lg\t%lg\n", p.get_id(), p2.get_id(), p.get_workplace().get_label(), p2.get_workplace().get_label(), p.get_workplace().get_latitude(), p.get_workplace().get_longitude(), p2.get_workplace().get_latitude(), p2.get_workplace().get_longitude());
                   people_swapped++;
                 }
               }
             }
           }
         }
-        //FRED_VERBOSE(0, "People Swapped:: %d out of %d\n", people_swapped, people_to_reassign_place);
+        //FredUtils.Log(0, "People Swapped:: %d out of %d\n", people_swapped, people_to_reassign_place);
         //printf("People Swapped:: %d out of %d\n", people_swapped, people_to_reassign_place);
       }
       return;

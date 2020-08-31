@@ -17,7 +17,7 @@ namespace Fred
 
     public override int Evaluate(Person person, int disease, DateTime day)
     {
-      var vcm = (VaccineManager)this.Policy.Manager;
+      var vcm = (Vaccine_Manager)this.Policy.Manager;
       int low_age = vcm.get_vaccine_priority_age_low();
       int high_age = vcm.get_vaccine_priority_age_high();
 

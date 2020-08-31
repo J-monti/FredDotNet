@@ -4,9 +4,17 @@ using System.Text;
 
 namespace Fred
 {
-  public class VaccineManager : Manager
+  public class Vaccine_Manager : Manager
   {
-    public VaccineManager()
+
+    public const int VACC_NO_PRIORITY = 0;
+    public const int VACC_AGE_PRIORITY = 1;
+    public const int VACC_ACIP_PRIORITY = 2;
+    public const int VACC_DOSE_NO_PRIORITY = 0;
+    public const int VACC_DOSE_FIRST_PRIORITY = 1;
+    public const int VACC_DOSE_RAND_PRIORITY = 2;
+    public const int VACC_DOSE_LAST_PRIORITY = 3;
+    public Vaccine_Manager()
     {
       this.vaccine_package = NULL;
       this.vaccine_priority_age_low = -1;
@@ -20,7 +28,7 @@ namespace Fred
       this.vaccinate_symptomatics = false;
     }
 
-    public VaccineManager(Population _pop)
+    public Vaccine_Manager(Population _pop)
       : base(_pop)
     {
 
@@ -104,10 +112,10 @@ namespace Fred
       // get vaccine_dose_priority
       Params::get_param_from_string("vaccine_dose_priority", &this.vaccine_dose_priority);
       assert(this.vaccine_dose_priority < 4);
-      //get_param((char*)"vaccination_capacity",&vaccination_capacity);
+      //get_param((string)"vaccination_capacity",&vaccination_capacity);
       this.vaccination_capacity_map = new Timestep_Map("vaccination_capacity");
       this.vaccination_capacity_map.read_map();
-      if (Global::Verbose > 1)
+      if (Global.Verbose > 1)
       {
         this.vaccination_capacity_map.print();
       }
@@ -159,7 +167,7 @@ namespace Fred
       copy(random_priority_queue.begin(), random_priority_queue.end(),
            this.priority_queue.begin());
 
-      if (Global::Verbose > 0)
+      if (Global.Verbose > 0)
       {
         cout << "Vaccine Queue Stats \n";
         cout << "   Number in Priority Queue      = " << this.priority_queue.size() << "\n";
@@ -205,7 +213,7 @@ namespace Fred
     {
       // Find a position to put the person in
       int size = this.priority_queue.size();
-      int position = (int)(Random::draw_random() * size);
+      int position = (int)(FredRandom.NextDouble() * size);
 
       list<Person*>::iterator pq = this.priority_queue.begin();
       for (int i = 0; i < position; ++i)
@@ -219,7 +227,7 @@ namespace Fred
     {
       // Find a position to put the person in
       int size = this.queue.size();
-      int position = (int)(Random::draw_random() * size);
+      int position = (int)(FredRandom.NextDouble() * size);
 
       list<Person*>::iterator pq = this.queue.begin();
       for (int i = 0; i < position; ++i)
@@ -264,7 +272,7 @@ namespace Fred
         this.vaccine_package.update(day);
         // Update the current vaccination capacity
         this.current_vaccine_capacity = this.vaccination_capacity_map.get_value_for_timestep(day,
-                              Global::Vaccine_offset);
+                              Global.Vaccine_offset);
         cout << "Current Vaccine Stock = " << this.vaccine_package.get_vaccine(0).get_current_stock()
        << "\n";
 
@@ -319,7 +327,7 @@ namespace Fred
       // Figure out the total number of vaccines we can hand out today
       int total_vaccines_avail = this.vaccine_package.get_total_vaccines_avail_today();
 
-      if (Global::Debug > 0)
+      if (Global.Debug > 0)
       {
         cout << "Vaccine Capacity on Day " << day << " = " << current_vaccine_capacity << "\n";
         cout << "Queues at beginning of vaccination:  priority (" << priority_queue.size()
@@ -327,14 +335,14 @@ namespace Fred
       }
       if (total_vaccines_avail == 0 || current_vaccine_capacity == 0)
       {
-        if (Global::Debug > 1)
+        if (Global.Debug > 1)
         {
           cout << "No Vaccine Available on Day " << day << "\n";
         }
-        Global::Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
-        Global::Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
-        Global::Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
-        Global::Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
+        Global.Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
+        Global.Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
+        Global.Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
+        Global.Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
         return;
       }
 
@@ -391,7 +399,7 @@ namespace Fred
             // TODO: HBM FIX THIS!
             // printf("vaccine rejected by person %d age %.1f\n", current_person.get_id(), current_person.get_real_age());
             // skip non-compliant person under HBM
-            // if(strcmp(Global::Behavior_model_type,"HBM") == 0) ++ip;
+            // if(strcmp(Global.Behavior_model_type,"HBM") == 0) ++ip;
             if (0)
             {
               ++ip;
@@ -405,7 +413,7 @@ namespace Fred
         }
         else
         {
-          if (Global::Verbose > 0)
+          if (Global.Verbose > 0)
           {
             cout << "Vaccine not applicable for agent " << current_person.get_id() << " "
            << current_person.get_real_age() << "\n";
@@ -415,7 +423,7 @@ namespace Fred
 
         if (total_vaccines_avail == 0)
         {
-          if (Global::Verbose > 0)
+          if (Global.Verbose > 0)
           {
             cout << "Vaccinated priority to stock out " << n_p_vaccinated << " agents, for a total of "
            << number_vaccinated << " on day " << day << "\n";
@@ -424,15 +432,15 @@ namespace Fred
             cout << "Number of acceptances: " << accept_count << ", Number of rejections: "
            << reject_count << "\n";
           }
-          Global::Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
-          Global::Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
+          Global.Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
           return;
         }
         if (current_vaccine_capacity == 0)
         {
-          if (Global::Verbose > 0)
+          if (Global.Verbose > 0)
           {
             cout << "Vaccinated priority to capacity " << n_p_vaccinated << " agents, for a total of "
            << number_vaccinated << " on day " << day << "\n";
@@ -441,15 +449,15 @@ namespace Fred
             cout << "Number of acceptances: " << accept_count << ", Number of rejections: "
            << reject_count << "\n";
           }
-          Global::Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
-          Global::Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
+          Global.Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
           return;
         }
       }
 
-      if (Global::Verbose > 0)
+      if (Global.Verbose > 0)
       {
         cout << "Vaccinated priority to population " << n_p_vaccinated << " agents, for a total of "
        << number_vaccinated << " on day " << day << "\n";
@@ -502,7 +510,7 @@ namespace Fred
             // printf("vaccine rejected by person %d age %0.1f\n", current_person.get_id(), current_person.get_real_age());
             reject_count++;
             // skip non-compliant person under HBM
-            // if(strcmp(Global::Behavior_model_type,"HBM") == 0) ip++;
+            // if(strcmp(Global.Behavior_model_type,"HBM") == 0) ip++;
             if (0)
               ip++;
             // remove non-compliant person if not HBM
@@ -516,7 +524,7 @@ namespace Fred
         }
         if (total_vaccines_avail == 0)
         {
-          if (Global::Verbose > 0)
+          if (Global.Verbose > 0)
           {
             cout << "Vaccinated regular to stock_out " << n_r_vaccinated << " agents, for a total of "
            << number_vaccinated << " on day " << day << "\n";
@@ -525,15 +533,15 @@ namespace Fred
             cout << "Number of acceptances: " << accept_count << ", Number of rejections: "
            << reject_count << "\n";
           }
-          Global::Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
-          Global::Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
+          Global.Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
           return;
         }
         if (this.current_vaccine_capacity == 0)
         {
-          if (Global::Verbose > 0)
+          if (Global.Verbose > 0)
           {
             cout << "Vaccinated regular to capacity " << n_r_vaccinated << " agents, for a total of "
            << number_vaccinated << " on day " << day << "\n";
@@ -542,15 +550,15 @@ namespace Fred
             cout << "Number of acceptances: " << accept_count << ", Number of rejections: "
            << reject_count << "\n";
           }
-          Global::Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
-          Global::Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
-          Global::Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
+          Global.Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
+          Global.Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
           return;
         }
       }
 
-      if (Global::Verbose > 0)
+      if (Global.Verbose > 0)
       {
         cout << "Vaccinated regular to population " << n_r_vaccinated << " agents, for a total of "
        << number_vaccinated << " on day " << day << "\n";
@@ -559,10 +567,10 @@ namespace Fred
         cout << "Number of acceptances: " << accept_count << ", Number of rejections: " << reject_count
        << "\n";
       }
-      Global::Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
-      Global::Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
-      Global::Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
-      Global::Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
+      Global.Daily_Tracker.set_index_key_pair(day, "V", number_vaccinated);
+      Global.Daily_Tracker.set_index_key_pair(day, "Va", accept_count);
+      Global.Daily_Tracker.set_index_key_pair(day, "Vr", reject_count);
+      Global.Daily_Tracker.set_index_key_pair(day, "Vs", reject_state_count);
       return;
     }
   }

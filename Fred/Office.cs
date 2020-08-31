@@ -1,43 +1,50 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Fred
 {
   public class Office : Place
   {
-    double Office::contacts_per_day;
-    double** Office::prob_transmission_per_contact;
+    private static double contacts_per_day;
+    private static double[,] prob_transmission_per_contact;
+    private Workplace workplace;
 
-    public Office() : base()
+    /**
+   * Default constructor
+   * Note: really only used by Allocator
+   */
+    public Office()
     {
-      this.set_type(Place::TYPE_OFFICE);
-      this.set_subtype(Place::SUBTYPE_NONE);
-      this.workplace = NULL;
+      this.set_type(Place.TYPE_OFFICE);
+      this.set_subtype(Place.SUBTYPE_NONE);
+      this.workplace = null;
     }
 
-    Office::Office(const char* lab, char _subtype, fred::geo lon, fred::geo lat) : Place(lab, lon, lat)
+    /**
+     * Constructor with necessary parameters
+     */
+    public Office(string label, char _subtype, FredGeo lon, FredGeo lat)
+      : base (label, lon, lat)
     {
-      this.set_type(Place::TYPE_OFFICE);
+      this.set_type(Place.TYPE_OFFICE);
+      this.workplace = null;
       this.set_subtype(_subtype);
-      this.workplace = NULL;
     }
 
-    void Office::get_parameters()
+    public static void get_parameters()
     {
-
-      Params::get_param_from_string("office_contacts", &Office::contacts_per_day);
-      int n = Params::get_param_matrix((char*)"office_trans_per_contact", &Office::prob_transmission_per_contact);
-      if (Global::Verbose > 1)
+      FredParameters.GetParameter("office_contacts", ref contacts_per_day);
+      prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("office_trans_per_contact");
+      int n = prob_transmission_per_contact.Length;
+      if (Global.Verbose > 1)
       {
-        printf("\nOffice_contact_prob:\n");
+        Console.WriteLine("\nOffice_contact_prob:\n");
         for (int i = 0; i < n; ++i)
         {
           for (int j = 0; j < n; ++j)
           {
-            printf("%f ", Office::prob_transmission_per_contact[i][j]);
+            Console.WriteLine("{0} ", prob_transmission_per_contact[i, j]);
           }
-          printf("\n");
+          Console.WriteLine();
         }
       }
 
@@ -48,9 +55,9 @@ namespace Fred
       {
         for (int j = 0; j < n; ++j)
         {
-          if (Office::prob_transmission_per_contact[i][j] > max_prob)
+          if (prob_transmission_per_contact[i, j] > max_prob)
           {
-            max_prob = Office::prob_transmission_per_contact[i][j];
+            max_prob = prob_transmission_per_contact[i, j];
           }
         }
       }
@@ -62,48 +69,93 @@ namespace Fred
         {
           for (int j = 0; j < n; ++j)
           {
-            Office::prob_transmission_per_contact[i][j] /= max_prob;
+            prob_transmission_per_contact[i, j] /= max_prob;
           }
         }
         // compensate contact rate
-        Office::contacts_per_day *= max_prob;
+        contacts_per_day *= max_prob;
       }
 
-      if (Global::Verbose > 0)
+      if (Global.Verbose > 0)
       {
-        printf("\nOffice_contact_prob after normalization:\n");
+        Console.WriteLine("\nOffice_contact_prob after normalization:\n");
         for (int i = 0; i < n; ++i)
         {
           for (int j = 0; j < n; ++j)
           {
-            printf("%f ", Office::prob_transmission_per_contact[i][j]);
+            Console.WriteLine("{0} ", prob_transmission_per_contact[i, j]);
           }
-          printf("\n");
+          Console.WriteLine();
         }
-        printf("\ncontact rate: %f\n", Office::contacts_per_day);
+        Console.WriteLine("\ncontact rate: {0}\n", Office.contacts_per_day);
       }
       // end normalization
     }
 
-    int Office::get_container_size()
+    /**
+     * @see Place.get_group(int disease, Person* per)
+     */
+    public override int get_group(int disease, Person per)
+    {
+      return 0;
+    }
+
+    public override int get_container_size()
     {
       return this.workplace.get_size();
     }
 
-    double Office::get_transmission_prob(int disease, Person* i, Person* s)
+    /**
+     * @see Place.get_transmission_prob(int disease, Person* i, Person  s)
+     *
+     * This method returns the value from the static array <code>Office.Office_contact_prob</code> that
+     * corresponds to a particular age-related value for each person.<br />
+     * The static array <code>Office_contact_prob</code> will be filled with values from the parameter
+     * file for the key <code>office_prob[]</code>.
+     */
+    public override double get_transmission_prob(int disease, Person i, Person s)
     {
       // i = infected agent
       // s = susceptible agent
       int row = get_group(disease, i);
       int col = get_group(disease, s);
-      double tr_pr = Office::prob_transmission_per_contact[row][col];
+      double tr_pr = prob_transmission_per_contact[row, col];
       return tr_pr;
     }
 
-    double Office::get_contacts_per_day(int disease)
+    /**
+     * @see Place.get_contacts_per_day(int disease)
+     *
+     * This method returns the value from the static array <code>Office.Office_contacts_per_day</code>
+     * that corresponds to a particular disease.<br />
+     * The static array <code>Office_contacts_per_day</code> will be filled with values from the parameter
+     * file for the key <code>office_contacts[]</code>.
+     */
+    public override double get_contacts_per_day(int disease)
     {
-      return Office::contacts_per_day;
+      return contacts_per_day;
     }
 
+    /**
+     * Determine if the office should be open. It is dependent on the disease and simulation day.
+     *
+     * @param day the simulation day
+     * @param disease an integer representation of the disease
+     * @return whether or not the office is open on the given day for the given disease
+     */
+    public override bool should_be_open(int day, int disease)
+    {
+      return true;
+    }
+
+    void set_workplace(Workplace _workplace)
+    {
+      this.workplace = _workplace;
+    }
+
+    public Workplace get_workplace()
+    {
+      return this.workplace;
+    }
   }
 }
