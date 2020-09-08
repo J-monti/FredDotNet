@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace Fred
 {
@@ -110,7 +109,7 @@ namespace Fred
     {
       FredParameters.GetParameter("hospital_contacts", ref Hospital.contacts_per_day);
       prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("hospital_trans_per_contact");
-      var n = Hospital.prob_transmission_per_contact.Length;
+      var n = Convert.ToInt32(Math.Sqrt(Hospital.prob_transmission_per_contact.Length));
       if (Global.Verbose > 1)
       {
         Console.WriteLine("\nHospital contact_prob:\n");

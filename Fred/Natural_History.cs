@@ -225,8 +225,8 @@ namespace Fred
           FredParameters.GetParameter($"{disease_name}_latent_period_dispersion", ref this.latent_period_dispersion);
           FredParameters.GetParameter($"{disease_name}_infectious_duration_median", ref this.infectious_duration_median);
           FredParameters.GetParameter($"{disease_name}_infectious_duration_dispersion", ref this.infectious_duration_dispersion);
-          FredParameters.GetParameter($"{disease_name}_latent_period_upper_bound", ref this.latent_period_upper_bound));
-          FredParameters.GetParameter($"{disease_name}_infectious_duration_upper_bound", ref this.infectious_duration_upper_bound));
+          FredParameters.GetParameter($"{disease_name}_latent_period_upper_bound", ref this.latent_period_upper_bound);
+          FredParameters.GetParameter($"{disease_name}_infectious_duration_upper_bound", ref this.infectious_duration_upper_bound);
 
           this.infectious_distribution_type = LOGNORMAL;
         }
@@ -331,7 +331,7 @@ namespace Fred
       if (this.immunity_loss_rate > 0.0)
       {
         // draw from exponential distribution
-        days = floor(0.5 + Random.draw_exponential(this.immunity_loss_rate));
+        days = Convert.ToInt32(Math.Floor(0.5 + FredRandom.Exponential(this.immunity_loss_rate)));
         // printf("DAYS RECOVERED = %d\n", days);
       }
       else

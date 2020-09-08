@@ -328,7 +328,7 @@ namespace Fred
       return;
 
       // update housing periodically
-      if (day == 0 || (Date.get_month() == 6 && Date.get_day_of_month() == 30))
+      /*if (day == 0 || (Date.get_month() == 6 && Date.get_day_of_month() == 30))
       {
         Utils.FRED_VERBOSE(0, "County.update_housing = {0}", day);
         update_housing(day);
@@ -339,7 +339,7 @@ namespace Fred
       if (Date.get_month() == 7 && Date.get_day_of_month() == 1)
       {
         update_population_dynamics(day);
-      }
+      }*/
     }
 
     public void set_initial_popsize(int popsize)
@@ -632,7 +632,7 @@ namespace Fred
 
         if (this.ready_to_move.Count == 0)
         {
-          Utils.FRED_DEBUG(1, "NO COLLEGE APPLICANTS FOUND\n");
+          Utils.FRED_VERBOSE(1, "NO COLLEGE APPLICANTS FOUND\n");
           return;
         }
 

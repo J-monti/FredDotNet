@@ -5,10 +5,11 @@ VisualStudioVersion = 16.0.29911.84
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fred", "Fred\Fred.csproj", "{D90A180D-2028-4437-80E6-D1A54AC4DA0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fred.Tests", "Fred.Tests\Fred.Tests.csproj", "{3FCFEBEA-632C-4881-8082-9F6BD83DCCF8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fred.Tests", "Fred.Tests\Fred.Tests.csproj", "{3FCFEBEA-632C-4881-8082-9F6BD83DCCF8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A835E8C1-FD9C-42B4-8008-08D53148D2EF}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		README.md = README.md
 	EndProjectSection
 EndProject

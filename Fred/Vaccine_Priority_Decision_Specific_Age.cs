@@ -10,18 +10,18 @@ namespace Fred
 
     public Vaccine_Priority_Decision_Specific_Age(Policy p) : base (p)
     {
-      this.Name = "Vaccine Priority Decision Specific Age";
-      this.Type = "Y/N";
-      this.Policy = p;
+      this.name = "Vaccine Priority Decision Specific Age";
+      this.type = "Y/N";
+      this.policy = p;
     }
 
-    public override int Evaluate(Person person, int disease, DateTime day)
+    public override int evaluate(Person person, int disease, int day)
     {
-      var vcm = (Vaccine_Manager)this.Policy.Manager;
+      var vcm = (Vaccine_Manager)this.policy.manager;
       int low_age = vcm.get_vaccine_priority_age_low();
       int high_age = vcm.get_vaccine_priority_age_high();
 
-      if (person.Age >= low_age && person.Age <= high_age)
+      if (person.get_age() >= low_age && person.get_age() <= high_age)
       {
         return 1;
       }

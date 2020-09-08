@@ -27,7 +27,7 @@ namespace Fred
     protected int last_day_infectious;
 
     // lists of people
-    protected List<Person> enrollees;
+    internal List<Person> enrollees;
 
     // track whether or not place is infectious with each disease
     protected BitArray infectious_bitset;

@@ -43,7 +43,7 @@ namespace Fred
     private Person myself;
 
     // links to daily activity locations
-    private Person_Place_Link link;
+    private Person_Place_Link[] link;
 
     // links to networks of people
     private List<Person_Network_Link> networks = new List<Person_Network_Link>();
@@ -493,14 +493,14 @@ namespace Fred
           }
         }
 
-        //Decide whether to visit healthcare if ASYMPTOMATIC (Background)
+        //Decide whether to visit health care if ASYMPTOMATIC (Background)
         if (Global.Enable_Hospitals && !(this.myself.is_symptomatic() > 0) && !this.myself.is_hospitalized())
         {
           decide_whether_to_seek_healthcare(sim_day);
         }
 
-        //Decide whether to visit hospitalized housemates
-        if (Global.Enable_Hospitals && !this.myself.is_hospitalized() && (Household)this.myself.get_household().has_hospitalized_member())
+        //Decide whether to visit hospitalized house mates
+        if (Global.Enable_Hospitals && !this.myself.is_hospitalized() && ((Household)this.myself.get_household()).has_hospitalized_member())
         {
 
           var hh = (Household)this.myself.get_household();
@@ -560,7 +560,7 @@ namespace Fred
                 var child_check = my_hh.get_enrollee(i);
                 if (child_check.is_child() &&
                    child_check.is_student() &&
-                   child_check.is_symptomatic() &&
+                   child_check.is_symptomatic() != 0 &&
                    child_check.get_activities().on_schedule[(int)Activity_index.SCHOOL_ACTIVITY])
                 {
                   // Do I have enough sick time?
@@ -941,7 +941,7 @@ namespace Fred
     }
 
     /**
-     * Decide whether to seek healthcare if symptomatic.
+     * Decide whether to seek health care if symptomatic.
      *
      * @param sim_day the simulation day
      */
@@ -1338,7 +1338,7 @@ namespace Fred
             hh.set_count_primary_hc_unav(hh.get_count_primary_hc_unav() + 1);
             Global.Daily_Tracker.increment_index_key_pair(sim_day, PRIMARY_HC_UNAV, 1);
 
-            //Find an open healthcare provider
+            //Find an open health care provider
             hosp = Global.Places.get_random_open_hospital_matching_criteria(sim_day, this.myself, true, false);
             if (hosp == null)
             {
@@ -1501,7 +1501,7 @@ namespace Fred
 
     public Place get_daily_activity_location(Activity_index i)
     {
-      return this.link[i].get_place();
+      return this.link[(int)i].get_place();
     }
 
     public List<Place> get_daily_activity_locations()
@@ -1536,12 +1536,12 @@ namespace Fred
         if (old_place != null)
         {
           // remove old link
-          // printf("remove old link\n");
-          this.link[i].unenroll(this.myself);
+          // Console.WriteLine("remove old link\n");
+          this.link[(int)i].unenroll(this.myself);
         }
         if (place != null)
         {
-          this.link[i].enroll(this.myself, place);
+          this.link[(int)i].enroll(this.myself, place);
         }
       }
       Utils.FRED_VERBOSE(1, "set daily activity location finished");
@@ -1823,7 +1823,7 @@ namespace Fred
       if (get_workplace() != null && get_office() == null && get_workplace().is_workplace()
      && Workplace.get_max_office_size() > 0)
       {
-        var place = (Workplace)(get_workplace()).assign_office(this.myself);
+        var place = ((Workplace)get_workplace()).assign_office(this.myself);
         if (place == null)
         {
           Utils.FRED_VERBOSE(0, "OFFICE WARNING: No office assigned for person {0} workplace {1}", this.myself.get_id(),
@@ -1866,7 +1866,7 @@ namespace Fred
     }
 
     /**
-     * Find a Primary Healthcare Facility and assign it to the agent
+     * Find a Primary Health care Facility and assign it to the agent
      * @param self the agent who needs to find a Primary care facility
      */
     public void assign_primary_healthcare_facility()
@@ -2065,7 +2065,7 @@ namespace Fred
             return;
           }
 
-          // current school and classroom are ok
+          // current school and classroom are okay
           Utils.assert(get_school() != null && get_classroom() != null);
           Utils.FRED_VERBOSE(1, "STUDENT_UPDATE PERSON {0} AGE {1} STAYING IN SCHOOL {2} SIZE {3} ORIG {4} CLASSROOM {5}",
                        this.myself.get_id(), age, get_school().get_label(), get_school().get_size(),
@@ -2652,7 +2652,7 @@ namespace Fred
       {
         Hospitalization_prob = new Age_Map("Hospitalization Probability");
         Hospitalization_prob.read_from_input("hospitalization_prob");
-        Outpatient_healthcare_prob = new Age_Map("Outpatient Healthcare Probability");
+        Outpatient_healthcare_prob = new Age_Map("Outpatient Health-care Probability");
         Outpatient_healthcare_prob.read_from_input("outpatient_healthcare_prob");
       }
 
@@ -3016,7 +3016,7 @@ namespace Fred
 
       Utils.FRED_VERBOSE(1, "set workplace {0}", get_label_for_place(work));
       set_workplace(work);
-      Utils.FRED_VERBOSE(1, "set workplace {0} ok", get_label_for_place(work));
+      Utils.FRED_VERBOSE(1, "set workplace {0} okay", get_label_for_place(work));
 
       // increase the population in county of residence
       int index = get_household().get_county_index();
@@ -3032,7 +3032,7 @@ namespace Fred
 
       // assign profile
       assign_initial_profile();
-      Utils.FRED_VERBOSE(1, "set profile ok");
+      Utils.FRED_VERBOSE(1, "set profile okay");
 
       // need to set the daily schedule
       this.schedule_updated = -1;
@@ -3085,7 +3085,7 @@ namespace Fred
       var place = get_daily_activity_location(i);
       if (place != null)
       {
-        this.link[i].enroll(this.myself, place);
+        this.link[(int)i].enroll(this.myself, place);
       }
     }
 

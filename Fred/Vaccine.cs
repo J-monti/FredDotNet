@@ -10,7 +10,7 @@ namespace Fred
     int id;                              // Which in the number of vaccines is it
     int disease;                          // Which Disease is this vaccine for
     int number_doses;                    // How many doses does the vaccine need.
-    List<VaccineDose> doses;       // Data structure to hold the efficacy of each dose.
+    List<Vaccine_Dose> doses;       // Data structure to hold the efficacy of each dose.
 
     int initial_stock;                   // How much available at the beginning
     int total_avail;                     // How much total in reserve
@@ -24,15 +24,16 @@ namespace Fred
     int num_strains;
 
     // for statistics
-    int number_delivered;
-    int number_effective;
+    //int number_delivered;
+    //int number_effective;
 
     public Vaccine(string _name, int _id, int _disease,
                  int _total_avail, int _additional_per_day,
-                 int _start_day, int num_strains, int[] _strains)
+                 int _start_day, int _num_strains, int[] _strains)
     {
       name = _name;
       id = _id;
+      this.num_strains = _num_strains;
       disease = _disease;
       additional_per_day = _additional_per_day;
       start_day = _start_day;
@@ -42,16 +43,17 @@ namespace Fred
       stock = 0;
       reserve = _total_avail;
       total_avail = _total_avail;
-      number_delivered = 0;
-      number_effective = 0;
+      //number_delivered = 0;
+      //number_effective = 0;
     }
 
-    public void add_dose(VaccineDose _vaccine_dose)
+    public void add_dose(Vaccine_Dose _vaccine_dose)
     {
       doses.Add(_vaccine_dose);
     }
 
-    public void print()  {
+    public void print()
+    {
       //cout << "Name = \t\t\t\t" <<name << "\n";
       //cout << "Applied to disease = \t\t" << disease << "\n";
       //cout << "Initial Stock = \t\t" << initial_stock << "\n";
@@ -74,7 +76,10 @@ namespace Fred
 
     public void update(int day)
     {
-      if (day >= start_day) add_stock(additional_per_day);
+      if (day >= start_day)
+      {
+        add_stock(additional_per_day);
+      }
     }
 
     public int get_strain(int i)
@@ -108,5 +113,17 @@ namespace Fred
     {
       return num_strains;
     }
+
+    public int get_disease() { return disease; }
+    public int get_ID() { return id; }
+    public int get_number_doses() { return doses.Count; }
+    public Vaccine_Dose get_dose(int i) { return doses[i]; }
+
+    // Logistics Functions
+    public int get_initial_stock() { return initial_stock; }
+    public int get_total_avail() { return total_avail; }
+    public int get_current_reserve() { return reserve; }
+    public int get_current_stock() { return stock; }
+    public int get_additional_per_day() { return additional_per_day; }
   }
 }

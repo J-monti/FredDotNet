@@ -10,12 +10,12 @@ namespace Fred
 
     public Vaccine_Priority_Decision_No_Priority(Policy p) : base(p)
     {
-      this.Name = "Vaccine Priority Decision No Priority";
-      this.Type = "Y/N";
-      this.Policy = p;
+      this.name = "Vaccine Priority Decision No Priority";
+      this.type = "Y/N";
+      this.policy = p;
     }
 
-    public override int Evaluate(Person person, int disease, DateTime day)
+    public override int evaluate(Person person, int disease, int day)
     {
       return -1;
     }

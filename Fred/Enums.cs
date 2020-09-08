@@ -87,12 +87,20 @@
     HOUSEHOLD_EXTENDED_ABSENCE
   }
 
-  enum Household_visitation_place_index
+  public enum Household_visitation_place_index
   {
     HOSPITAL,
     //PRISON,
     //NURSING_HOME,
     //COLLEGE_DORM,
     HOUSEHOLD_VISITATION
+  }
+
+  public enum Pop_Masks
+  {
+    Infectious = 'I',
+    Susceptible = 'S',
+    Update_Health = 'H',
+    Travel = 'T'
   }
 }

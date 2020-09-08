@@ -167,9 +167,9 @@ namespace Fred
       if (this.enable_face_mask_usage != 0 && this.enable_hand_washing != 0)
       {
         FredParameters.GetParameter($"{this.disease_name}_face_mask_plus_hand_washing_transmission_efficacy",
-                ref this.face_mask_plus_hand_washing_transmission_efficacy));
+                ref this.face_mask_plus_hand_washing_transmission_efficacy);
         FredParameters.GetParameter($"{this.disease_name}_face_mask_plus_hand_washing_susceptibility_efficacy",
-                ref this.face_mask_plus_hand_washing_susceptibility_efficacy));
+                ref this.face_mask_plus_hand_washing_susceptibility_efficacy);
       }
 
       // Define residual immunity
@@ -327,14 +327,14 @@ namespace Fred
     /**
      * @return the probability that agent's will stay home
      */
-    public static double get_prob_stay_home();
+    //public static double get_prob_stay_home();
 
     /**
      * @param the new probability that agent's will stay home
      */
-    public static void set_prob_stay_home(double prob);
+    //public static void set_prob_stay_home(double prob);
 
-    public void get_disease_parameters();
+    //public void get_disease_parameters();
 
     public void increment_cohort_infectee_count(int day)
     {

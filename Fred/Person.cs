@@ -25,7 +25,7 @@ namespace Fred
       this.exposed_household_index = -1;
     }
 
-    protected void setup(int _index, int _id, int age, char sex,
+    public void setup(int _index, int _id, int age, char sex,
        int race, int rel, Place house, Place school, Place work,
        int day, bool today_is_birthday)
     {
@@ -153,7 +153,7 @@ namespace Fred
      */
     public void update_demographics(int day)
     {
-      this.demographics.update(day);
+      Demographics.update(day);
     }
 
     public void update_infection(int day, int disease_id)
@@ -1218,7 +1218,7 @@ namespace Fred
       return this.activities.get_grade();
     }
 
-    void set_grade(int n)
+    public void set_grade(int n)
     {
       this.activities.set_grade(n);
     }

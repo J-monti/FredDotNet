@@ -1,12 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Fred
 {
-  public class Tracker<T>
+  /**
+   * The Tracker Class is a class that contains maps that allow one to 
+   * log on a daily basis different counts of things throughout FRED
+   *
+   * It basically contains three maps for integers, doubles, and strings
+   * and stores a key, and then allows you to log daily values.
+   */
+  // TODO: re-implement with the counts being members of a template class
+  public class Tracker<T> where T : struct
   {
-    private readonly static string[] allowed_typenames= new string[] { "double", "int", "string" };
+    private string title;
+    private string index_name;
+    private readonly List<T> indices = new List<T>();
+    private readonly Dictionary<string, List<int>> values_map_int = new Dictionary<string, List<int>>();
+    private readonly Dictionary<string, List<string>> values_map_string = new Dictionary<string, List<string>>();
+    private readonly Dictionary<string, List<double>> values_map_double = new Dictionary<string, List<double>>();
+    private readonly static List<string> allowed_typenames= new List<string> { "double", "int", "string" };
 
     public Tracker()
     {
@@ -41,18 +57,16 @@ namespace Fred
 
     public bool is_allowed_type(string type_name)
     {
-      vector<string> atypes = this._get_allowed_typenames();
-      return find(atypes.begin(), atypes.end(), type_name) != atypes.end();
+      return allowed_typenames.Contains(type_name);
     }
 
     public string has_key(string key)
     {
-      vector<string> aTypes = this._get_allowed_typenames();
-      for (int i = 0; i < aTypes.size(); ++i)
+      var aTypes = allowed_typenames;
+      for (int i = 0; i < aTypes.Count; ++i)
       {
-        vector<string> keys = this._get_keys(aTypes[i]);
-        vector<string>::iterator iter_index = find(keys.begin(), keys.end(), key);
-        if (iter_index != keys.end())
+        var keys = this._get_keys(aTypes[i]);
+        if (keys.Contains(key))
         {
           return aTypes[i];
         }
@@ -71,7 +85,7 @@ namespace Fred
         {
           if (hardfail)
           {
-            ERROR_PRINT("Tracker.h::add_index Trying to add an Index that already exists (hardfail set to true)");
+            Utils.fred_abort("Tracker.h::add_index Trying to add an Index that already exists (hardfail set to true)");
           }
           else
           {
@@ -81,14 +95,14 @@ namespace Fred
       }
 
       {
-        this.indices.push_back(index);
-        vector<string> aTypes = _get_allowed_typenames();
-        for (int i = 0; i < aTypes.size(); ++i)
+        this.indices.Add(index);
+        var aTypes = _get_allowed_typenames();
+        for (int i = 0; i < aTypes.Count; ++i)
         {
           this._add_new_index(aTypes[i]);
         }
       }
-      return this.indices.size() - 1;
+      return this.indices.Count - 1;
     }
 
     public void add_key(string key_name, string TypeName)
@@ -97,8 +111,8 @@ namespace Fred
         // Check if key exists
         if (has_key(key_name) != "None")
         {
-          ERROR_PRINT("Tracker.h::add_key::Key %s already exists as Type %s\n",
-          key_name.c_str(), has_key(key_name).c_str());
+          Utils.fred_abort("Tracker.h::add_key::Key %s already exists as Type %s\n",
+          key_name, has_key(key_name));
         }
         this._add_new_key(key_name, TypeName);
       }
@@ -116,9 +130,7 @@ namespace Fred
         }
         else
         {
-          stringstream ss;
-          ss << index;
-          ERROR_PRINT("Tracker.h::set)index_key_pair(int) there is no index %s\n", ss.str().c_str());
+          Utils.fred_abort("Tracker.h::set)index_key_pair(int) there is no index {0}", index);
         }
       }
 
@@ -131,7 +143,7 @@ namespace Fred
         }
         else
         {
-          ERROR_PRINT("Tracker.h::set_index_key_pair with int, using a key that is not for integers");
+          Utils.fred_abort("Tracker.h::set_index_key_pair with int, using a key that is not for integers");
         }
       }
       this.values_map_int[key_name][index_position] = value;
@@ -148,9 +160,7 @@ namespace Fred
         }
         else
         {
-          stringstream ss;
-          ss << index;
-          ERROR_PRINT("Tracker.h::set_index_key_pair (double) there is no index %s\n", ss.str().c_str());
+          Utils.fred_abort("Tracker.h::set_index_key_pair (double) there is no index {0}", index);
         }
       }
       string key_type = this.has_key(key_name);
@@ -162,7 +172,7 @@ namespace Fred
         }
         else
         {
-          ERROR_PRINT("Tracker.h::set_index_key_pair with double, using a key that is not for integers");
+          Utils.fred_abort("Tracker.h::set_index_key_pair with double, using a key that is not for integers");
         }
       }
       this.values_map_double[key_name][index_position] = value;
@@ -179,9 +189,7 @@ namespace Fred
         }
         else
         {
-          stringstream ss;
-          ss << index;
-          ERROR_PRINT("Tracker.h::set_index_key_pair (string) there is no index %s\n", ss.str().c_str());
+          Utils.fred_abort("Tracker.h::set_index_key_pair (string) there is no index {0}", index);
         }
       }
 
@@ -194,7 +202,7 @@ namespace Fred
         }
         else
         {
-          ERROR_PRINT("Tracker.h::set_index_key_pair with string, using a key that is not for integers");
+          Utils.fred_abort("Tracker.h::set_index_key_pair with string, using a key that is not for integers");
         }
       }
       this.values_map_string[key_name][index_position] = value;
@@ -205,9 +213,7 @@ namespace Fred
       int index_position = this._index_pos(index);
       if (index_position == -1)
       {
-        stringstream ss;
-        ss << index;
-        ERROR_PRINT("Tracker.h::increment_index_key_pair there is no index %s\n", ss.str().c_str());
+        Utils.fred_abort("Tracker.h::increment_index_key_pair there is no index {0}", index);
       }
 
       string key_type = this.has_key(key_name);
@@ -219,7 +225,7 @@ namespace Fred
 
       if (key_type != "int")
       {
-        ERROR_PRINT("Tracker.h::increment_index_key_pair, (int) trying to increment a key %s with non integer type\n", key_name.c_str());
+        Utils.fred_abort("Tracker.h::increment_index_key_pair, (int) trying to increment a key %s with non integer type\n", key_name);
       }
       this.values_map_int[key_name][index_position] += value;
     }
@@ -229,9 +235,7 @@ namespace Fred
       int index_position = this._index_pos(index);
       if (index_position == -1)
       {
-        stringstream ss;
-        ss << index;
-        ERROR_PRINT("Tracker.h::increment_index_key_pair there is no index %s\n", ss.str().c_str());
+        Utils.fred_abort("Tracker.h::increment_index_key_pair there is no index {0}", index);
       }
 
       string key_type = this.has_key(key_name);
@@ -244,14 +248,14 @@ namespace Fred
 
       if (key_type != "double")
       {
-        ERROR_PRINT("Tracker.h::increment_index_key_pair, (double) trying to increment a key %s with non double type\n", key_name.c_str());
+        Utils.fred_abort("Tracker.h::increment_index_key_pair, (double) trying to increment a key %s with non double type\n", key_name);
       }
       this.values_map_double[key_name][index_position] += value;
     }
 
     public void increment_index_key_pair(T index, string key_name, string value)
     {
-      ERROR_PRINT("Tracker.h::increment_index_key_pair, trying to increment a key %s with string type\n", key_name.c_str());
+      Utils.fred_abort("Tracker.h::increment_index_key_pair, trying to increment a key %s with string type\n", key_name);
     }
 
     public void increment_index_key_pair(T index, string key_name)
@@ -259,9 +263,7 @@ namespace Fred
       int index_position = this._index_pos(index);
       if (index_position == -1)
       {
-        stringstream ss;
-        ss << index;
-        ERROR_PRINT("Tracker.h::increment_index_key_pair there is no index %s\n", ss.str().c_str());
+        Utils.fred_abort("Tracker.h::increment_index_key_pair there is no index {0}", index);
       }
 
       string key_type = this.has_key(key_name);
@@ -271,15 +273,15 @@ namespace Fred
       }
       else if (key_type == "int")
       {
-        this.increment_index_key_pair(index, key_name, static_cast<int>(1));
+        this.increment_index_key_pair(index, key_name, 1);
       }
       else if (key_type == "double")
       {
-        this.increment_index_key_pair(index, key_name, static_cast<double>(1.0));
+        this.increment_index_key_pair(index, key_name, 1.0);
       }
       else
       {
-        ERROR_PRINT("Tracker.h::increment_index_key_pair, trying to increment a typename that doesn't exist");
+        Utils.fred_abort("Tracker.h::increment_index_key_pair, trying to increment a type name that doesn't exist");
       }
     }
 
@@ -287,32 +289,27 @@ namespace Fred
     public void reset_index_all_key_pairs_to_zero(T index)
     {
       int index_position = this._index_pos(index);
-
       if (index_position == -1)
       {
-        stringstream ss;
-        ss << index;
-        ERROR_PRINT("Tracker.h::increment_index_key_pair there is no index %s\n", ss.str().c_str());
+        Utils.fred_abort("Tracker.h::increment_index_key_pair there is no index {0}", index);
       }
 
-      for (map<string, vector<int>>::iterator iter = this.values_map_int.begin();
-    iter != this.values_map_int.end(); ++iter)
+      //for (int a = 0; a < this.values_map_int.Count; a++)
+      foreach (var kvp in this.values_map_int)
       {
-        (*iter).second[index_position] = 0;
+        kvp.Value[index_position] = 0;
       }
 
-      for (map<string, vector<double>>::iterator iter = this.values_map_double.begin();
-    iter != this.values_map_double.end(); ++iter)
+      foreach (var kvp in this.values_map_double)
       {
-        (*iter).second[index_position] = 0.0;
+        kvp.Value[index_position] = 0;
       }
-
     }
 
 
-    public void reset_all_index_key_pairs_to_zero(void)
+    public void reset_all_index_key_pairs_to_zero()
     {
-      for (int i = 0; i < this.indices.size(); ++i)
+      for (int i = 0; i < this.indices.Count; ++i)
       {
         reset_index_all_key_pairs_to_zero(this.indices[i]);
       }
@@ -320,12 +317,12 @@ namespace Fred
 
     public void set_all_index_for_key(string key_name, int value)
     {
-      for (int i = 0; i < this.indices.size(); ++i)
+      for (int i = 0; i < this.indices.Count; ++i)
       {
         string key_type = this.has_key(key_name);
         if (key_type != "int")
         {
-          ERROR_PRINT("Tracker.h::set_all_index_for_key, called with an integer and key %s is not an integer value", key_name.c_str());
+          Utils.fred_abort("Tracker.h::set_all_index_for_key, called with an integer and key {0} is not an integer value", key_name);
         }
         this.set_index_key_pair(this.indices[i], key_name, value, false);
       }
@@ -333,12 +330,12 @@ namespace Fred
 
     public void set_all_index_for_key(string key_name, double value)
     {
-      for (int i = 0; i < this.indices.size(); ++i)
+      for (int i = 0; i < this.indices.Count; ++i)
       {
         string key_type = this.has_key(key_name);
         if (key_type != "double")
         {
-          ERROR_PRINT("Tracker.h::set_all_index_for_key, called with an double and key %s is not an double value", key_name.c_str());
+          Utils.fred_abort("Tracker.h::set_all_index_for_key, called with an double and key %s is not an double value", key_name);
         }
         this.set_index_key_pair(this.indices[i], key_name, value, false);
       }
@@ -346,103 +343,100 @@ namespace Fred
 
     public void set_all_index_for_key(string key_name, string value)
     {
-      for (int i = 0; i < this.indices.size(); ++i)
+      for (int i = 0; i < this.indices.Count; ++i)
       {
         string key_type = this.has_key(key_name);
         if (key_type != "string")
         {
-          ERROR_PRINT("Tracker.h::set_all_index_for_key, called with an string and key %s is not an string value", key_name.c_str());
+          Utils.fred_abort("Tracker.h::set_all_index_for_key, called with an string and key %s is not an string value", key_name);
         }
         this.set_index_key_pair(this.indices[i], key_name, value, false);
       }
     }
 
     //Printers
-    public string print_key_table(void)
+    public string print_key_table()
     {
-      stringstream sList;
-
-      sList << "Key Table\n";
-      sList << "---------------------------------" << std::endl;
-      vector<string> atypes = this._get_allowed_typenames();
-      for (int i = 0; i < atypes.size(); ++i)
+      var sList = new StringBuilder();
+      sList.AppendLine("Key Table");
+      sList.AppendLine("---------------------------------");
+      var atypes = this._get_allowed_typenames();
+      for (int i = 0; i < atypes.Count; ++i)
       {
-        vector<string> keys = this._get_keys(atypes[i]);
-        if (keys.size() > 0)
+       var keys = this._get_keys(atypes[i]);
+        if (keys.Count > 0)
         {
-          sList << "  " << atypes[i] << " Keys" << std::endl;
-          for (int i = 0; i < keys.size(); ++i)
+          sList.Append($"  {atypes[i]} Keys");
+          for (int j = 0; j < keys.Count; ++j)
           {
-            sList << "\t" << keys[i] << std::endl;
+            sList.Append($"\t{keys[j]}");
           }
         }
       }
-      return sList.str();
+      return sList.ToString();
     }
 
     public string print_key_index_list(string key_name)
     {
-      stringstream returnString;
-
-      returnString << "Key: " << key_name << std::endl;
-      returnString << "--------------------------------------" << std::endl;
-      returnString << "Index\t\tValue" << std::endl;
+      var returnString = new StringBuilder();
+      returnString.AppendLine($"Key: {key_name}");
+      returnString.AppendLine("--------------------------------------");
+      returnString.AppendLine("Index\t\tValue");
 
       string key_type = this.has_key(key_name);
       // Can't figure out how to not do this explicitly yet
       if (key_type == "None")
       {
-        ERROR_PRINT("Tracker.h::print_key_index_list requesting a key %s that does not exist\n", key_name.c_str());
+        Utils.fred_abort("Tracker.h::print_key_index_list requesting a key %s that does not exist\n", key_name);
       }
       else if (key_type == "int")
       {
-        if (this.indices.size() != this.values_map_int[key_name].size())
+        if (this.indices.Count != this.values_map_int[key_name].Count)
         {
-          ERROR_PRINT("Tracker.h::print_key_index_list there is something wrong with the counts number of indices != number of values for key %s\n",
-                key_name.c_str());
+          Utils.fred_abort("Tracker.h::print_key_index_list there is something wrong with the counts number of indices != number of values for key %s\n",
+                key_name);
         }
 
-        for (int i = 0; i < this.indices.size(); ++i)
+        for (int i = 0; i < this.indices.Count; ++i)
         {
-          returnString << this.indices[i] << "\t\t" << this.values_map_int[key_name][i] << std::endl;
+          returnString.Append($"{this.indices[i]}\t\t{this.values_map_int[key_name][i]}");
         }
       }
       else if (key_type == "double")
       {
-        if (this.indices.size() != values_map_double[key_name].size())
+        if (this.indices.Count != values_map_double[key_name].Count)
         {
-          ERROR_PRINT("Tracker.h::print_key_index_list there is something wrong with the counts number of indices != number of values for key %s\n",
-                key_name.c_str());
+          Utils.fred_abort("Tracker.h::print_key_index_list there is something wrong with the counts number of indices != number of values for key %s\n",
+                key_name);
         }
 
-        for (int i = 0; i < this.indices.size(); ++i)
+        for (int i = 0; i < this.indices.Count; ++i)
         {
-          returnString << this.indices[i] << "\t\t" << this.values_map_double[key_name][i] << std::endl;
+          returnString.Append($"{this.indices[i]}\t\t{this.values_map_double[key_name][i]}");
         }
       }
       else if (key_type == "string")
       {
-        if (this.indices.size() != this.values_map_string[key_name].size())
+        if (this.indices.Count != this.values_map_string[key_name].Count)
         {
-          ERROR_PRINT("Tracker.h::print_key_index_list there is something wrong with the counts number of indices != number of values for key %s\n",
-                key_name.c_str());
+          Utils.fred_abort("Tracker.h::print_key_index_list there is something wrong with the counts number of indices != number of values for key %s\n",
+                key_name);
         }
 
-        for (int i = 0; i < this.indices.size(); ++i)
+        for (int i = 0; i < this.indices.Count; ++i)
         {
-          returnString << this.indices[i] << "\t\t" << this.values_map_string[key_name][i] << std::endl;
+          returnString.Append($"{this.indices[i]}\t\t{this.values_map_string[key_name][i]}");
         }
       }
       else
       {
-        ERROR_PRINT("Tracker.h::print_key_index_list called with an unrecognized typename for key %s",
-        key_name.c_str());
+        Utils.fred_abort("Tracker.h::print_key_index_list called with an unrecognized typename for key %s",
+        key_name);
       }
 
-      returnString << "--------------------------------------" << std::endl;
+      returnString.Append("--------------------------------------");
 
-      return returnString.str();
-
+      return returnString.ToString();
     }
 
     public string print_inline_report_format_for_index(T index)
@@ -450,208 +444,209 @@ namespace Fred
       int index_pos = this._index_pos(index);
       if (index_pos == -1)
       {
-        ERROR_PRINT("Tracker.h::print_inline_report_format_for_index asked for index that does not exist");
+        Utils.fred_abort("Tracker.h::print_inline_report_format_for_index asked for index that does not exist");
       }
-      stringstream returnStringSt;
-      returnStringSt << this.index_name << " " << index << " ";
-
-      for (map<string, vector<string>>::iterator iter = this.values_map_string.begin();
-    iter != this.values_map_string.end(); ++iter)
+      var returnStringSt = new StringBuilder();
+      returnStringSt.Append($"{this.index_name} {index} ");
+      foreach (var kvp in this.values_map_string)
       {
-        returnStringSt << (*iter).first << " " << (*iter).second[index_pos] << " ";
+        returnStringSt.Append($"{kvp.Key} {kvp.Value[index_pos]} ");
       }
-      for (map<string, vector<int>>::iterator iter = this.values_map_int.begin();
-    iter != this.values_map_int.end(); ++iter)
+
+      foreach (var kvp in this.values_map_int)
       {
-        returnStringSt << (*iter).first << " " << (*iter).second[index_pos] << " ";
+        returnStringSt.Append($"{kvp.Key} {kvp.Value[index_pos]} ");
       }
-      for (map<string, vector<double>>::iterator iter = this.values_map_double.begin();
-    iter != this.values_map_double.end(); ++iter)
+
+      foreach (var kvp in this.values_map_double)
       {
-        returnStringSt << (*iter).first << " " << setprecision(2) << fixed << (*iter).second[index_pos] << " ";
+        returnStringSt.Append($"{kvp.Key} {kvp.Value[index_pos]} ");
       }
 
-      string returnString = returnStringSt.str();
-      returnString.erase(returnString.size() - 1);
-
-      returnString.append("\n");
-
-      return returnString;
+      returnStringSt.AppendLine();
+      return returnStringSt.ToString();
     }
 
-    public void output_inline_report_format_for_index(T index, ostream &stream)
+    public void output_inline_report_format_for_index(T index, TextWriter stream)
     {
-      stream << print_inline_report_format_for_index(index);
+      stream.WriteLine(print_inline_report_format_for_index(index));
     }
 
-    public void output_inline_report_format_for_index(T index, FILE* outfile)
-    {
-      fprintf(outfile, "%s", print_inline_report_format_for_index(index).c_str());
-      fflush(outfile);
-    }
+    //public void output_inline_report_format_for_index(T index, TextWriter stream)
+    //{
+    //  stream.WriteLine(print_inline_report_format_for_index(index));
+    //  stream.Flush();
+    //}
 
-    public string print_inline_report_format(void)
+    public string print_inline_report_format()
     {
-      stringstream returnString;
+      var returnString = new StringBuilder();
 
-      for (int i = 0; i < this.indices.size(); ++i)
+      for (int i = 0; i < this.indices.Count; ++i)
       {
-        returnString << print_inline_report_format_for_index(this.indices[i]);
+        returnString.AppendLine(print_inline_report_format_for_index(this.indices[i]));
       }
-      return returnString.str();
+      return returnString.ToString();
     }
-    void output_inline_report_format(ostream& stream)
+    void output_inline_report_format(TextWriter stream)
     {
-      stream << print_inline_report_format();
+      stream.WriteLine(print_inline_report_format());
     }
 
-    public void output_inline_report_format(FILE* outfile)
-    {
-      fprintf(outfile, "%s", print_inline_report_format().c_str());
-      fflush(outfile);
-    }
+    //public void output_inline_report_format(TextWriter stream)
+    //{
+    //  fprintf(outfile, "%s", print_inline_report_format());
+    //  fflush(outfile);
+    //}
 
     public string print_csv_report_format_for_index(T index)
     {
       int index_pos = this._index_pos(index);
       if (index_pos == -1)
       {
-        ERROR_PRINT("Tracker.h::print_csv_report_format_for_index asked for index that does not exist");
+        Utils.fred_abort("Tracker.h::print_csv_report_format_for_index asked for index that does not exist");
       }
 
-      stringstream returnString;
-      returnString << index;
-      for (map<string, vector<string>>::iterator iter = this.values_map_string.begin();
-    iter != this.values_map_string.end(); ++iter)
+      var returnString = new StringBuilder();
+      returnString.Append(index);
+      foreach (var kvp in this.values_map_string)
       {
-        returnString << "," << (*iter).second[index_pos];
+        returnString.Append($",{kvp.Value[index_pos]}");
       }
-      for (map<string, vector<int>>::iterator iter = this.values_map_int.begin();
-    iter != this.values_map_int.end(); ++iter)
-      {
-        returnString << "," << (*iter).second[index_pos];
-      }
-      for (map<string, vector<double>>::iterator iter = this.values_map_double.begin();
-    iter != this.values_map_double.end(); ++iter)
-      {
-        returnString << "," << (*iter).second[index_pos];
-      }
-      returnString << "\n";
 
-      return returnString.str();
+      foreach (var kvp in this.values_map_int)
+      {
+        returnString.Append($",{kvp.Value[index_pos]}");
+      }
+
+      foreach (var kvp in this.values_map_double)
+      {
+        returnString.Append($",{kvp.Value[index_pos]}");
+      }
+
+      returnString.AppendLine();
+      return returnString.ToString();
     }
 
-    public void output_csv_report_format_for_index(T index, ostream& stream)
+    public void output_csv_report_format_for_index(T index, TextWriter stream)
     {
-      stream << print_csv_report_format_for_index(index);
+      stream.WriteLine(print_csv_report_format_for_index(index));
     }
 
-    public void output_csv_report_format_for_index(T index, FILE* outfile)
-    {
-      fprintf(outfile, "%s", print_csv_report_format_for_index(index).c_str());
-      fflush(outfile);
-    }
+    //public void output_csv_report_format_for_index(T index, FILE* outfile)
+    //{
+    //  fprintf(outfile, "%s", print_csv_report_format_for_index(index));
+    //  fflush(outfile);
+    //}
 
-    public string print_csv_report_format_header(void)
+    public string print_csv_report_format_header()
     {
-      stringstream returnString;
-
-      returnString << this.index_name;
-      for (map<string, vector<string>>::iterator iter = this.values_map_string.begin();
-    iter != this.values_map_string.end(); ++iter)
+      var returnString = new StringBuilder();
+      returnString.Append(this.index_name);
+      foreach (var kvp in this.values_map_string)
       {
-        returnString << "," << (*iter).first;
+        returnString.Append($",{kvp.Key}");
 
       }
-      for (map<string, vector<int>>::iterator iter = this.values_map_int.begin();
-    iter != this.values_map_int.end(); ++iter)
-      {
-        returnString << "," << (*iter).first;
-      }
-      for (map<string, vector<double>>::iterator iter = this.values_map_double.begin();
-    iter != this.values_map_double.end(); ++iter)
-      {
-        returnString << "," << (*iter).first;
-      }
-      returnString << "\n";
 
-      return returnString.str();
+      foreach (var kvp in this.values_map_int)
+      {
+        returnString.Append($",{kvp.Key}");
+      }
+
+      foreach (var kvp in this.values_map_double)
+      {
+        returnString.Append($",{kvp.Key}");
+      }
+
+      returnString.AppendLine();
+      return returnString.ToString();
     }
 
-    public void output_csv_report_format_header(FILE* outfile)
+    public void output_csv_report_format_header(TextWriter outfile)
     {
-      fprintf(outfile, "%s", print_csv_report_format_header().c_str());
-      fflush(outfile);
+      outfile.WriteLine(print_csv_report_format_header());
+      outfile.Flush();
     }
 
-    public void output_csv_report_format(FILE* outfile)
+    public void output_csv_report_format(TextWriter outfile)
     {
       output_csv_report_format_header(outfile);
-      for (int i = 0; i < this.indices.size(); ++i)
+      for (int i = 0; i < this.indices.Count; ++i)
       {
         output_csv_report_format_for_index(this.indices[i], outfile);
       }
-      fflush(outfile);
+      outfile.Flush();
     }
 
-    private string title;
-    private string index_name;
-    private List<T> indices;
-    private Dictionary<string, List<int>> values_map_int;
-    private Dictionary<string, List<string>> values_map_string;
-    private Dictionary<string, List<double>> values_map_double;
-
-    private List<string> _get_allowed_typenames(void)
+    private List<string> _get_allowed_typenames()
     {
-      vector<string> aTypes(allowed_typenames, allowed_typenames +3);
-      return aTypes;
+      return allowed_typenames;
     }
 
     private void _add_new_index(string TypeName)
     {
       if (this.is_allowed_type(TypeName) == false)
       {
-        ERROR_PRINT("Tracker.h::_add_new_index has been called with unsupported TypeName %s, use double, int, or string\n",
-        TypeName.c_str());
+        Utils.fred_abort("Tracker.h::_add_new_index has been called with unsupported TypeName %s, use double, int, or string\n",
+        TypeName);
       }
 
       if (TypeName == "int")
       {
-        if (this.values_map_int.size() > 0)
+        if (this.values_map_int.Count > 0)
         {
-          for (map<string, vector<int>>::iterator iter = this.values_map_int.begin();
-              iter != this.values_map_int.end(); ++iter)
+          foreach (var kvp in this.values_map_int)
           {
-            (*iter).second.push_back(0);
+            if (kvp.Value == null)
+            {
+              this.values_map_int[kvp.Key] = new List<int> { 0 };
+            }
+            else
+            {
+              kvp.Value.Add(0);
+            }
           }
         }
       }
       else if (TypeName == "double")
       {
-        if (this.values_map_double.size() > 0)
+        if (this.values_map_double.Count > 0)
         {
-          for (map<string, vector<double>>::iterator iter = this.values_map_double.begin();
-              iter != this.values_map_double.end(); ++iter)
+          foreach (var kvp in this.values_map_double)
           {
-            (*iter).second.push_back(0);
+            if (kvp.Value == null)
+            {
+              this.values_map_double[kvp.Key] = new List<double> { 0.0 };
+            }
+            else
+            {
+              kvp.Value.Add(0);
+            }
           }
         }
       }
       else if (TypeName == "string")
       {
-        if (this.values_map_string.size() > 0)
+        if (this.values_map_string.Count > 0)
         {
-          for (map<string, vector<string>>::iterator iter = this.values_map_string.begin();
-              iter != this.values_map_string.end(); ++iter)
+          foreach (var kvp in this.values_map_string)
           {
-            (*iter).second.push_back(" ");
+            if (kvp.Value == null)
+            {
+              this.values_map_string[kvp.Key] = new List<string> { " " };
+            }
+            else
+            {
+              kvp.Value.Add(" ");
+            }
           }
         }
       }
       else
       {
-        ERROR_PRINT("Tracker.h::add_new_index has been called with unsupported TypeName %s, use double, int, or string\n",
-        TypeName.c_str());
+        Utils.fred_abort("Tracker.h::add_new_index has been called with unsupported TypeName %s, use double, int, or string\n",
+        TypeName);
       }
     }
 
@@ -659,90 +654,89 @@ namespace Fred
     {
       if (this.is_allowed_type(TypeName) == false)
       {
-        ERROR_PRINT("Tracker.h::_add_new_keys has been called with unsupported TypeName %s, use double, int, or string\n",
-        TypeName.c_str());
+        Utils.fred_abort("Tracker.h::_add_new_keys has been called with unsupported TypeName %s, use double, int, or string\n",
+        TypeName);
       }
 
       if (TypeName == "int")
       {
-        for (int i = 0; i < this.indices.size(); ++i)
+        for (int i = 0; i < this.indices.Count; ++i)
         {
-          this.values_map_int[key_name].push_back(0);
+          this.values_map_int.Add(key_name, new List<int> { 0 });//[key_name].Add(0);
         }
       }
       else if (TypeName == "double")
       {
-        for (int i = 0; i < this.indices.size(); ++i)
+        for (int i = 0; i < this.indices.Count; ++i)
         {
-          this.values_map_double[key_name].push_back(0.0);
+          this.values_map_double.Add(key_name, new List<double> { 0.0 });//[key_name].Add(0.0);
         }
       }
       else if (TypeName == "string")
       {
-        for (int i = 0; i < this.indices.size(); ++i)
+        for (int i = 0; i < this.indices.Count; ++i)
         {
-          this.values_map_string[key_name].push_back("A String");
+          this.values_map_string.Add(key_name, new List<string> { "A String" });//[key_name].Add("A String");
         }
       }
       else
       {
-        ERROR_PRINT("Tracker.h::_add_new_key got a type name %s for key %s it doesn't know how to handle (use int,double,or string)",
-        key_name.c_str(), TypeName.c_str());
+        Utils.fred_abort("Tracker.h::_add_new_key got a type name %s for key %s it doesn't know how to handle (use int,double,or string)",
+        key_name, TypeName);
       }
     }
 
-    private int _index_pos<T>(T index)
+    private int _index_pos(T index)
     {
-      typename vector<T>::iterator iter_index;
-
+      //typename vector<T>::iterator iter_index;
       //return index;
-      iter_index = find(this.indices.begin(), this.indices.end(), index);
-      if (iter_index != this.indices.end())
-      {
-        return distance(this.indices.begin(), iter_index);
-      }
-      else
-      {
-        return -1;
-      }
+      //iter_index = find(this.indices.begin(), this.indices.end(), index);
+      return this.indices.IndexOf(index);
+      //var iter_index = this.indices.FirstOrDefault(i => i == index);
+      //if (iter_index != null)
+      //{
+      //  return iter_index;
+      //  //return distance(this.indices.begin(), iter_index);
+      //}
+      //else
+      //{
+      //  return -1;
+      //}
     }
 
     private List<string> _get_keys(string TypeName)
     {
       if (this.is_allowed_type(TypeName) == false)
       {
-        ERROR_PRINT("Tracker.h::_get_keys has been called with unsupported TypeName %s, use double,int, or string\n",
-        TypeName.c_str());
+        Utils.fred_abort("Tracker.h::_get_keys has been called with unsupported TypeName %s, use double,int, or string\n",
+        TypeName);
       }
 
-      vector<string> returnVec;
+      var returnVec = new List<string>();
       if (TypeName == "int")
       {
-        for (map<string, vector<int>>::iterator iter = this.values_map_int.begin();
-      iter != this.values_map_int.end(); ++iter)
+        foreach (var kvp in this.values_map_int)
         {
-          returnVec.push_back((*iter).first);
+          returnVec.Add(kvp.Key);
         }
       }
       else if (TypeName == "double")
       {
-        for (map<string, vector<double>>::iterator iter = this.values_map_double.begin();
-      iter != values_map_double.end(); ++iter)
+        foreach (var kvp in this.values_map_double)
         {
-          returnVec.push_back((*iter).first);
+          returnVec.Add(kvp.Key);
         }
       }
       else if (TypeName == "string")
       {
-        for (map<string, vector<string>>::iterator iter = this.values_map_string.begin();
-      iter != this.values_map_string.end(); ++iter)
+        foreach (var kvp in this.values_map_string)
         {
-          returnVec.push_back((*iter).first);
+          returnVec.Add(kvp.Key);
         }
       }
       else
       {
-        ERROR_PRINT("Tracker.h::_get_keys called with an unrecognized TypeName %s\n", TypeName.c_str());
+        Utils.fred_abort("Tracker.h::_get_keys called with an unrecognized TypeName %s\n", TypeName);
       }
       return returnVec;
     }

@@ -2,36 +2,36 @@
 
 namespace Fred
 {
-  public class Transmission
+  public abstract class Transmission
   {
-    protected double Seasonal_Reduction = 0.0;
-    protected double[] Seasonality_multiplier;
+    protected static double Seasonal_Reduction = 0.0;
+    protected static double[] Seasonality_multiplier;
 
-    public Transmission get_new_transmission(TransmissionMode transmission_mode)
+    public static Transmission get_new_transmission(string transmission_mode)
     {
       switch (transmission_mode)
       {
-        case TransmissionMode.Respiratory:
-          return new RespiratoryTransmission();
-        case TransmissionMode.Vector:
-          return new VectorTransmission();
-        case TransmissionMode.Sexual:
-          return new SexualTransmission();
+        case "respiratory":
+          return new Respiratory_Transmission();
+        case "vector":
+          return new Vector_Transmission();
+        case "sexual":
+          return new Sexual_Transmission();
         default:
           throw new InvalidOperationException("Unknown transmission mode!");
       }
     }
 
-    public void get_parameters()
+    public static void get_parameters()
     {
       // all-disease seasonality reduction
-      Params::get_param_from_string("seasonal_reduction", &Transmission::Seasonal_Reduction);
+      FredParameters.GetParameter("seasonal_reduction", ref Seasonal_Reduction);
       // setup seasonal multipliers
 
       if (Seasonal_Reduction > 0.0)
       {
-        int seasonal_peak_day_of_year; // e.g. Jan 1
-        Params::get_param_from_string("seasonal_peak_day_of_year", &seasonal_peak_day_of_year);
+        int seasonal_peak_day_of_year = 0; // e.g. Jan 1
+        FredParameters.GetParameter("seasonal_peak_day_of_year", ref seasonal_peak_day_of_year);
 
         // setup seasonal multipliers
         Seasonality_multiplier = new double[367];
@@ -48,5 +48,8 @@ namespace Fred
         }
       }
     }
+
+    public abstract void setup(Disease disease);
+    public abstract void spread_infection(int day, int disease_id, Mixing_Group mixing_group);
   }
 }

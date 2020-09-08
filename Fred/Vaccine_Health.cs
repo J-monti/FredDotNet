@@ -42,7 +42,7 @@ namespace Fred
       days_to_next_dose = -1;
       if (Global.Debug > 1)
       {
-        Console.WriteLine($"Agent: {person.get_id()} took dose {current_dose} on day {vaccination_day}";
+        Console.WriteLine($"Agent: {person.get_id()} took dose {current_dose} on day {vaccination_day}");
       }
       if (vaccine.get_number_doses() > 1)
       {

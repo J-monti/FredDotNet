@@ -60,12 +60,17 @@ namespace Fred
 
     // Sick time available to watch children for adult housemates
     private readonly Dictionary<Person, HH_Adult_Sickleave_Data> adult_childcare_sickleave_map = new Dictionary<Person, HH_Adult_Sickleave_Data>();
-    private readonly static Dictionary<int, int> count_inhabitants_by_household_income_level_map = new Dictionary<int, int>();
+    internal readonly static Dictionary<int, int> count_inhabitants_by_household_income_level_map = new Dictionary<int, int>();
 
     public readonly static Dictionary<int, int> count_children_by_household_income_level_map = new Dictionary<int, int>();
     public readonly static Dictionary<long, int> count_inhabitants_by_census_tract_map = new Dictionary<long, int>();
     public readonly static Dictionary<long, int> count_children_by_census_tract_map = new Dictionary<long, int>();
     public readonly static List<long> census_tract_set = new List<long>();
+
+    public static string household_income_level_lookup(int idx)
+    {
+      return household_income_level_lookup((Household_income_level_code)idx);
+    }
 
     public static string household_income_level_lookup(Household_income_level_code idx)
     {
@@ -199,7 +204,7 @@ namespace Fred
       FredParameters.GetParameter("neighborhood_same_age_bias", ref same_age_bias);
       same_age_bias *= 0.5;
       prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("household_trans_per_contact");
-      int n = prob_transmission_per_contact.Length;
+      int n = Convert.ToInt32(Math.Sqrt(prob_transmission_per_contact.Length));
       if (Global.Verbose > 1)
       {
         Console.WriteLine("\nHousehold contact_prob:");

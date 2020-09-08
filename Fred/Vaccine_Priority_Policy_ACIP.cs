@@ -6,10 +6,9 @@
       : base(vcm)
     {
       this.Name = "Vaccine Priority Policy - ACIP Priority";
-      this.Decisions.Add(new Vaccine_Priority_Decision_Specific_Age(this));
-      this.Decisions.Add(new Vaccine_Priority_Decision_Pregnant(this));
-      this.Decisions.Add(new Vaccine_Priority_Decision_At_Risk(this));
+      this.decision_list.Add(new Vaccine_Priority_Decision_Specific_Age(this));
+      this.decision_list.Add(new Vaccine_Priority_Decision_Pregnant(this));
+      this.decision_list.Add(new Vaccine_Priority_Decision_At_Risk(this));
     }
-  {
   }
 }

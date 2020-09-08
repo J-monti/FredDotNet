@@ -81,7 +81,7 @@ namespace Fred
 
       x = (weekday - ddmonth);
       x %= 7;
-      y = ddcentury + (date.Year - century) + (Math.Floor((date.Year - century) / 4));
+      y = Convert.ToInt32(ddcentury + (date.Year - century) + (Math.Floor((double)((date.Year - century) / 4))));
       y %= 7;
       weekday = (x + y) % 7;
 

@@ -468,7 +468,7 @@ namespace Fred
       if (!health.is_symptomatic() && cur_day < health.get_symptoms_start_date(disease))
       {
         // Can only have these effects if the agent is not symptomatic yet
-        health.modify_develops_symptoms(disease, roll_will_have_symp(), cur_day);
+        health.modify_develops_symptoms(disease, roll_will_have_symp() != 0, cur_day);
       }
 
       if (!health.is_symptomatic() && cur_day < health.get_symptoms_start_date(disease))

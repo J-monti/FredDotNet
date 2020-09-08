@@ -7,10 +7,11 @@ namespace Fred
   {
     protected List<Decision> decision_list;
     protected string Name;
-    protected Manager manager;
+    internal Manager manager;
 
     public Policy ()
     {
+      this.Name = string.Empty;
       this.decision_list = new List<Decision>();
     }
 
@@ -19,6 +20,11 @@ namespace Fred
       this.Name = "Generic";
       this.manager = manager;
       this.decision_list = new List<Decision>();
+    }
+
+    public Manager get_manager()
+    {
+      return this.manager;
     }
 
     public virtual bool choose_first_positive(Person person, int disease, int current_day)

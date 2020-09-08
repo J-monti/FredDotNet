@@ -210,7 +210,7 @@ namespace Fred
      * @param day the simulation day
      *
      */
-    public void update(int day)
+    public static void update(int day)
     {
       // reset counts of births and deaths
       births_today = 0;

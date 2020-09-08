@@ -25,7 +25,7 @@ namespace Fred
     {
       FredParameters.GetParameter("network_contacts", ref contacts_per_day);
       prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("network_trans_per_contact");
-      int n = prob_transmission_per_contact.Length;
+      int n = Convert.ToInt32(Math.Sqrt(prob_transmission_per_contact.Length));
       if (Global.Verbose > 1)
       {
         Console.WriteLine("\nNetwork_contact_prob:\n");

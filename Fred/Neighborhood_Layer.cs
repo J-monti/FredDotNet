@@ -33,7 +33,7 @@ namespace Fred
     private double Community_prob;      // deprecated
     private double Home_neighborhood_prob;		// deprecated
 
-    Neighborhood_Layer()
+    public Neighborhood_Layer()
     {
       var base_grid = Global.Simulation_Region;
       this.min_lat = base_grid.get_min_lat();
@@ -211,7 +211,7 @@ namespace Fred
         }
       }
       Utils.assert(schools.Count > 0);
-      Utils.FRED_VERBOSE(1, "SELECT_SCHOOL_IN_AREA found %d possible schools\n", schools.size());
+      Utils.FRED_VERBOSE(1, "SELECT_SCHOOL_IN_AREA found %d possible schools\n", schools.Count);
       // sort schools by vacancies
       schools.Sort(new MoreRoomComparer());
       // pick the school with largest vacancy or smallest crowding 
@@ -382,9 +382,9 @@ namespace Fred
       {
         int total_area = this.rows * this.cols;
         int convex_area = tot_occ_patches;
-        Utils.FRED_STATUS(0, "Density: popsize = %d total region = %d total_density = %f\n",
+        Utils.FRED_STATUS(0, "Density: pop size = %d total region = %d total_density = %f\n",
           popsize, total_area, (total_area > 0) ? (double)popsize / (double)total_area : 0.0);
-        Utils.FRED_STATUS(0, "Density: popsize = %d convex region = %d convex_density = %f\n",
+        Utils.FRED_STATUS(0, "Density: pop size = %d convex region = %d convex_density = %f\n",
           popsize, convex_area, (convex_area > 0) ? (double)popsize / (double)convex_area : 0.0);
         Utils.FRED_STATUS(0, "grid quality control finished\n");
       }
@@ -467,7 +467,7 @@ namespace Fred
       int c2 = (int)((px + radius_in_km) / this.patch_size);
       c2 = (c2 <= this.cols - 1) ? c2 : this.cols - 1;
 
-      var households = new List<Place>(); // store all households in patches ovelapping the radius
+      var households = new List<Place>(); // store all households in patches overlapping the radius
 
       for (int r = r1; r <= r2; r++)
       {
@@ -493,7 +493,7 @@ namespace Fred
     }
 
     /**
-     * Make each patch in this layer store its daily activity locations, and then set popsize and households
+     * Make each patch in this layer store its daily activity locations, and then set pop size and households
      */
     public void record_daily_activity_locations()
     {
@@ -517,7 +517,7 @@ namespace Fred
     }
 
     /**
-     * @return the popsize
+     * @return the pop size
      */
     public int get_popsize()
     {

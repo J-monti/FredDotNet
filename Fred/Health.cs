@@ -1618,7 +1618,7 @@ namespace Fred
 
     public static int nantivirals;
 
-    public static string chronic_condition_lookup(Chronic_condition_index.e idx)
+    public static string chronic_condition_lookup(Chronic_condition_index idx)
     {
       Utils.assert(idx >= 0);
       Utils.assert(idx < Chronic_condition_index.CHRONIC_MEDICAL_CONDITIONS);
@@ -1646,7 +1646,7 @@ namespace Fred
       return null;
     }
 
-    public static string insurance_lookup(Insurance_assignment_index.e idx)
+    public static string insurance_lookup(Insurance_assignment_index idx)
     {
       Utils.assert(idx >= Insurance_assignment_index.PRIVATE);
       Utils.assert(idx <= Insurance_assignment_index.UNSET);

@@ -16,10 +16,9 @@ namespace Fred
     private double memory_decay;
 
     protected Perceptions() { }
-    public Perceptions(Person self)
+    public Perceptions(Person p)
     {
       this.self = p;
-
       if (Perceptions.parameters_set == false)
         get_parameters();
 

@@ -31,7 +31,7 @@ namespace Fred
       FredParameters.GetParameter("neighborhood_contacts", ref contacts_per_day);
       FredParameters.GetParameter("neighborhood_same_age_bias", ref same_age_bias);
       prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("neighborhood_trans_per_contact");
-      int n = prob_transmission_per_contact.Length;
+      int n = Convert.ToInt32(Math.Sqrt(prob_transmission_per_contact.Length));
       if (Global.Verbose > 1)
       {
         Console.WriteLine("\nNeighborhood_contact_prob:\n");

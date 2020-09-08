@@ -17,7 +17,7 @@ namespace Fred
     /**
    * Default constructor. Does not set 'do_av' bool, thereby disabling antirals.
    */
-    AV_Manager()
+    public AV_Manager()
     {
       this.overall_start_day = -1;
     }

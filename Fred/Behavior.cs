@@ -36,7 +36,7 @@ namespace Fred
     {
     }
 
-    public void setup(Person self)
+    public void setup(Person _self)
     {
       Utils.assert(parameters_are_set == true);
       if (!Global.Enable_Behaviors)
@@ -45,38 +45,38 @@ namespace Fred
       }
 
       // setup an adult
-      if (self.is_adult())
+      if (_self.is_adult())
       {
         // adults do not have a separate health decision maker
         Utils.FRED_VERBOSE(1, "behavior_setup for adult {0} age {1} -- will make own health decisions",
-         self.get_id(), self.get_age());
+         _self.get_id(), _self.get_age());
         this.health_decision_maker = null;
-        setup_intentions(self);
+        setup_intentions(_self);
         return;
       }
 
       // setup a child
-      int relationship = self.get_relationship();
-      var hh = (Household)(self.get_household());
+      int relationship = _self.get_relationship();
+      var hh = (Household)(_self.get_household());
 
       if (hh == null)
       {
-        if (Global.Enable_Hospitals && self.is_hospitalized() && self.get_permanent_household() != null)
+        if (Global.Enable_Hospitals && _self.is_hospitalized() && _self.get_permanent_household() != null)
         {
-          hh = (Household)(self.get_permanent_household());
+          hh = (Household)(_self.get_permanent_household());
         }
       }
 
-      var person = select_adult(hh, relationship, self);
+      var person = select_adult(hh, relationship, _self);
 
       // child is on its own
       if (person == null)
       {
         Utils.FRED_VERBOSE(1, "behavior_setup for child {0} age {1} -- will make own health decisions",
-         self.get_id(), self.get_age());
+         _self.get_id(), _self.get_age());
         // no separate health decision maker
         this.health_decision_maker = null;
-        setup_intentions(self);
+        setup_intentions(_self);
         return;
       }
 
@@ -85,7 +85,7 @@ namespace Fred
       {
         Utils.FRED_VERBOSE(0,
          "behavior_setup for child {0} age {1} -- minor person {2} age {3} will make health decisions",
-         self.get_id(), self.get_age(), person.get_id(), person.get_age());
+         _self.get_id(), _self.get_age(), person.get_id(), person.get_age());
         this.health_decision_maker = person;
         person.become_health_decision_maker(person);
         return;
@@ -94,7 +94,7 @@ namespace Fred
       // an adult is available
       Utils.FRED_VERBOSE(0,
              "behavior_setup for child {0} age {1} -- adult person {2} age {3} will make health decisions",
-             self.get_id(), self.get_age(), person.get_id(), person.get_age());
+             _self.get_id(), _self.get_age(), person.get_id(), person.get_age());
       this.health_decision_maker = person; // no need to setup atitudes for adults
     }
 
@@ -343,43 +343,43 @@ namespace Fred
       if (behavior_params[(int)Behavior_index.STAY_HOME_WHEN_SICK].enabled)
       {
         this.intention[(int)Behavior_index.STAY_HOME_WHEN_SICK] =
-          new Intention(self, Behavior_index.STAY_HOME_WHEN_SICK);
+          new Intention(_self, (int)Behavior_index.STAY_HOME_WHEN_SICK);
       }
 
       if (behavior_params[(int)Behavior_index.TAKE_SICK_LEAVE].enabled)
       {
         this.intention[(int)Behavior_index.TAKE_SICK_LEAVE] =
-          new Intention(self, Behavior_index.TAKE_SICK_LEAVE);
+          new Intention(_self, (int)Behavior_index.TAKE_SICK_LEAVE);
       }
 
       if (behavior_params[(int)Behavior_index.KEEP_CHILD_HOME_WHEN_SICK].enabled)
       {
         this.intention[(int)Behavior_index.KEEP_CHILD_HOME_WHEN_SICK] =
-          new Intention(self, Behavior_index.KEEP_CHILD_HOME_WHEN_SICK);
+          new Intention(_self, (int)Behavior_index.KEEP_CHILD_HOME_WHEN_SICK);
       }
 
       if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE].enabled)
       {
         this.intention[(int)Behavior_index.ACCEPT_VACCINE] =
-          new Intention(self, Behavior_index.ACCEPT_VACCINE);
+          new Intention(_self, (int)Behavior_index.ACCEPT_VACCINE);
       }
 
       if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE_DOSE].enabled)
       {
         this.intention[(int)Behavior_index.ACCEPT_VACCINE_DOSE] =
-          new Intention(self, Behavior_index.ACCEPT_VACCINE_DOSE);
+          new Intention(_self, (int)Behavior_index.ACCEPT_VACCINE_DOSE);
       }
 
       if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE_FOR_CHILD].enabled)
       {
         this.intention[(int)Behavior_index.ACCEPT_VACCINE_FOR_CHILD] =
-          new Intention(self, Behavior_index.ACCEPT_VACCINE_FOR_CHILD);
+          new Intention(_self, (int)Behavior_index.ACCEPT_VACCINE_FOR_CHILD);
       }
 
       if (behavior_params[(int)Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD].enabled)
       {
         this.intention[(int)Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD] =
-          new Intention(self, Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD);
+          new Intention(_self, (int)Behavior_index.ACCEPT_VACCINE_DOSE_FOR_CHILD);
       }
     }
 

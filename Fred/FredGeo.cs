@@ -26,5 +26,15 @@ namespace Fred
     {
       return $"{this.Value}";
     }
+
+    public static implicit operator FredGeo(double value) => new FredGeo(value);
+
+    public static implicit operator double(FredGeo geo) => geo.Value;
+
+    public static FredGeo operator +(FredGeo a, FredGeo b) => new FredGeo(a.Value + b.Value);
+
+    public static FredGeo operator -(FredGeo a) => new FredGeo(-a.Value);
+
+    public static FredGeo operator -(FredGeo a, FredGeo b) => new FredGeo(a.Value - b.Value);
   }
 }

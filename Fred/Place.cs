@@ -630,9 +630,9 @@ namespace Fred
         }
         else
         {
-          this.vector_disease_data.place_seeds[i] = Global.Vectors.get_seeds(this, i);
-          this.vector_disease_data.day_start_seed[i] = Global.Vectors.get_day_start_seed(this, i);
-          this.vector_disease_data.day_end_seed[i] = Global.Vectors.get_day_end_seed(this, i);
+          this.vector_disease_data.place_seeds[i] =    Convert.ToInt32(Global.Vectors.get_seeds(this, i));
+          this.vector_disease_data.day_start_seed[i] = Convert.ToInt32(Global.Vectors.get_day_start_seed(this, i));
+          this.vector_disease_data.day_end_seed[i] =   Convert.ToInt32(Global.Vectors.get_day_end_seed(this, i));
         }
       }
       Utils.FRED_VERBOSE(1, "setup_vector_model: place {0} vectors_per_host {1} N_vectors {2} N_orig {3}",

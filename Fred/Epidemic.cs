@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Fred
 {
@@ -13,7 +11,7 @@ namespace Fred
     public const char SEED_EXPOSED = 'E';
     public const char SEED_INFECTIOUS = 'I';
 
-    protected Disease disease;
+    protected readonly Disease disease;
     protected int id;
     private int N;          // current population size
     private int N_init;     // initial population size
@@ -22,22 +20,22 @@ namespace Fred
     private bool report_transmission_by_age;
 
     // event queues
-    private Events infectious_start_event_queue;
-    private Events infectious_end_event_queue;
-    private Events symptoms_start_event_queue;
-    private Events symptoms_end_event_queue;
-    private Events immunity_start_event_queue;
-    private Events immunity_end_event_queue;
+    private readonly Events infectious_start_event_queue;
+    private readonly Events infectious_end_event_queue;
+    private readonly Events symptoms_start_event_queue;
+    private readonly Events symptoms_end_event_queue;
+    private readonly Events immunity_start_event_queue;
+    private readonly Events immunity_end_event_queue;
 
     // active sets
-    private List<Person> infected_people;
-    protected List<Person> potentially_infectious_people;
-    private List<Place> active_places;
-    private List<Person> actually_infectious_people;
-    private List<Place> active_place_vec;
+    private readonly List<Person> infected_people;
+    protected readonly List<Person> potentially_infectious_people;
+    private readonly List<Place> active_places;
+    private readonly List<Person> actually_infectious_people;
+    private readonly List<Place> active_place_vec;
 
     // seeding imported cases
-    private List<Time_Step_Map> imported_cases_map;
+    private readonly List<Epidemic_TimeStepMap> imported_cases_map;
     private bool import_by_age;
     private double import_age_lower_bound;
     private double import_age_upper_bound;
@@ -50,8 +48,8 @@ namespace Fred
     private char seeding_type;
     private double fraction_seeds_infectious;
 
-    private List<Person> daily_infections_list;
-    private List<Person> daily_symptomatic_list;
+    private readonly List<Person> daily_infections_list;
+    private readonly List<Person> daily_symptomatic_list;
 
     // population health state counters
     private int susceptible_people;
@@ -59,9 +57,9 @@ namespace Fred
     private int infectious_people;
     private int removed_people;
     private int immune_people;
-    private int vaccinated_people;
+    //private int vaccinated_people;
     private int people_becoming_infected_today;
-    private Disease_Count_Info population_infection_counts;
+    private readonly Disease_Count_Info population_infection_counts = new Disease_Count_Info();
 
     //Values for household income based stratification
     private Dictionary<int, Disease_Count_Info> household_income_infection_counts_map;
@@ -151,7 +149,7 @@ namespace Fred
       this.removed_people = 0;
 
       this.immune_people = 0;
-      this.vaccinated_people = 0;
+      // this.vaccinated_people = 0;
 
       this.report_generation_time = false;
       this.report_transmission_by_age = false;
@@ -162,8 +160,10 @@ namespace Fred
       if (Global.Report_Mean_Household_Stats_Per_Income_Category)
       {
         //Values for household income based stratification
+        this.household_income_infection_counts_map = new Dictionary<int, Disease_Count_Info>();
         for (int i = 0; i < (int)Household_income_level_code.UNCLASSIFIED; ++i)
         {
+          this.household_income_infection_counts_map.Add(i, new Disease_Count_Info());
           this.household_income_infection_counts_map[i].tot_ppl_evr_inf = 0;
           this.household_income_infection_counts_map[i].tot_ppl_evr_sympt = 0;
           this.household_income_infection_counts_map[i].tot_chldrn_evr_inf = 0;
@@ -221,7 +221,7 @@ namespace Fred
       this.census_tracts = 0;
       this.fraction_seeds_infectious = 0.0;
 
-      this.imported_cases_map = new List<Time_Step_Map>();
+      this.imported_cases_map = new List<Epidemic_TimeStepMap>();
       this.import_by_age = false;
       this.import_age_lower_bound = 0;
       this.import_age_upper_bound = Demographics.MAX_AGE;
@@ -264,7 +264,7 @@ namespace Fred
           { // empty line or comment
             continue;
           }
-          var tmap = new Time_Step_Map();
+          var tmap = new Epidemic_TimeStepMap();
           var data = line.Split(' ');
           var n = data.Length;
           if (n < 3)
@@ -702,6 +702,11 @@ namespace Fred
           }
           break;
       }
+    }
+
+    internal void track_value(int day, string key, int value)
+    {
+      Utils.track_value(day, key, value, this.id);
     }
 
     public void report_distance_of_infection(int day)
@@ -2193,7 +2198,7 @@ namespace Fred
         {
           if (person.get_household() != null)
           {
-            int income_level = (Household)(person.get_household()).get_household_income_code();
+            int income_level = ((Household)person.get_household()).get_household_income_code();
             if (income_level >= (int)Household_income_level_code.CAT_I &&
                income_level < (int)Household_income_level_code.UNCLASSIFIED)
             {

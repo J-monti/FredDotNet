@@ -42,7 +42,7 @@ namespace Fred
     {
       FredParameters.GetParameter("classroom_contacts", ref contacts_per_day);
       prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("classroom_trans_per_contact");
-      int n = prob_transmission_per_contact.Length;
+      int n = Convert.ToInt32(Math.Sqrt(prob_transmission_per_contact.Length));
       if (Global.Verbose > 1)
       {
         Utils.FRED_STATUS(0, "\nClassroom_contact_prob:");

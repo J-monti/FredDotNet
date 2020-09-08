@@ -34,7 +34,7 @@ namespace Fred
     {
       FredParameters.GetParameter("office_contacts", ref contacts_per_day);
       prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("office_trans_per_contact");
-      int n = prob_transmission_per_contact.Length;
+      int n = Convert.ToInt32(Math.Sqrt(prob_transmission_per_contact.Length));
       if (Global.Verbose > 1)
       {
         Console.WriteLine("\nOffice_contact_prob:\n");
@@ -148,7 +148,7 @@ namespace Fred
       return true;
     }
 
-    void set_workplace(Workplace _workplace)
+    public void set_workplace(Workplace _workplace)
     {
       this.workplace = _workplace;
     }

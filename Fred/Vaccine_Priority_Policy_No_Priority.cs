@@ -6,7 +6,7 @@
       : base(vcm)
     {
       this.Name = "Vaccine Priority Policy - No Priority";
-      this.Decisions.Add(new Vaccine_Priority_Decision_No_Priority(this));
+      this.decision_list.Add(new Vaccine_Priority_Decision_No_Priority(this));
     }
   }
 }

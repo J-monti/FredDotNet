@@ -78,9 +78,8 @@ namespace Fred
 
     public static string Simulation_directory;
     public static int Simulation_run_number = 1;
-    public static ulong Simulation_seed = 1;
+    public static int Simulation_seed = 1;
     public static Stopwatch Simulation_Stopwatch = new Stopwatch();
-    public static DateTime Simulation_start_time = DateTime.Now;
     public static int Simulation_Day;
 
     // global runtime parameters
@@ -122,7 +121,7 @@ namespace Fred
     public static int Test;
     public static int Days;
     public static int Reseed_day;
-    public static ulong Seed;
+    public static int Seed;
     public static string Start_date;
     public static int Epidemic_offset;
     public static int Vaccine_offset;
@@ -182,37 +181,37 @@ namespace Fred
     public static string Residual_Immunity_File;
 
     // global singleton objects
-    public static Population Pop;
-    public static Disease_List Diseases;
-    public static Place_List Places;
+    public static readonly Population Pop = new Population();
+    public static readonly Disease_List Diseases = new Disease_List();
+    public static readonly Place_List Places = new Place_List();
     public static Neighborhood_Layer Neighborhoods;
     public static Regional_Layer Simulation_Region;
     public static Visualization_Layer Visualization;
     public static Vector_Layer Vectors;
-    public static Evolution Evol;
+    public static readonly Evolution Evol = new Evolution();
     public static Seasonality Clim;
-    public static Tracker<int> Daily_Tracker;
-    public static Tracker<long> Tract_Tracker;
-    public static Tracker<int> Income_Category_Tracker;
+    public static Tracker<int> Daily_Tracker = new Tracker<int>();
+    public static Tracker<long> Tract_Tracker = new Tracker<long>();
+    public static Tracker<int> Income_Category_Tracker = new Tracker<int>();
     public static int[] Popsize_by_age = new int[Demographics.MAX_AGE];
     public static Network Transmission_Network;
     public static Sexual_Transmission_Network Sexual_Partner_Network;
 
     // global file pointers
-    public static StreamWriter Statusfp;
-    public static StreamWriter Outfp;
-    public static StreamWriter Tracefp;
-    public static StreamWriter Infectionfp;
-    public static StreamWriter VaccineTracefp;
-    public static StreamWriter Birthfp;
-    public static StreamWriter Deathfp;
-    public static StreamWriter Prevfp;
-    public static StreamWriter Incfp;
-    public static StreamWriter ErrorLogfp;
-    public static StreamWriter Immunityfp;
-    public static StreamWriter Householdfp;
-    public static StreamWriter Tractfp;
-    public static StreamWriter IncomeCatfp;
+    public static TextWriter Statusfp;
+    public static TextWriter Outfp;
+    public static TextWriter Tracefp;
+    public static TextWriter Infectionfp;
+    public static TextWriter VaccineTracefp;
+    public static TextWriter Birthfp;
+    public static TextWriter Deathfp;
+    public static TextWriter Prevfp;
+    public static TextWriter Incfp;
+    public static TextWriter ErrorLogfp;
+    public static TextWriter Immunityfp;
+    public static TextWriter Householdfp;
+    public static TextWriter Tractfp;
+    public static TextWriter IncomeCatfp;
 
     /**
      * Fills the static variables with values from the parameter file.

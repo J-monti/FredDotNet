@@ -10,59 +10,61 @@ namespace Fred
     private static double[,] prob_transmission_per_contact;
     private static int Office_size = 0;
     private static int total_workers = 0;
-    private static List<int> workplace_size_max; // vector to hold the upper limit for each workplace size group
-    private static List<int> workers_by_workplace_size; // vector to hold the counts of workers in each group (plus, the "greater than" group)
+    private static List<int> workplace_size_max = new List<int>(); // vector to hold the upper limit for each workplace size group
+    private static List<int> workers_by_workplace_size = new List<int>(); // vector to hold the counts of workers in each group (plus, the "greater than" group)
     private static int workplace_size_group_count = 0;
     private List<Place> offices;
     private int next_office;
 
     public Workplace() : base()
     {
-      this.set_type(PlaceType.Workplace);
-      this.set_subtype(PlaceSubType.None);
+      this.set_type(Place.TYPE_WORKPLACE);
+      this.set_subtype(SUBTYPE_NONE);
       this.intimacy = 0.01;
       this.offices = new List<Place>();
       this.next_office = 0;
     }
 
-    public Workplace(string lab, PlaceSubType _subtype, double lon, double lat)
-      : base(lab, lon, lat)
+    public Workplace(string label, char _subtype, double lon, double lat)
+      : base(label, lon, lat)
     {
-      this.set_type(PlaceType.Workplace);
+      this.set_type(Place.TYPE_WORKPLACE);
       this.set_subtype(_subtype);
       this.intimacy = 0.01;
       this.offices = new List<Place>();
       this.next_office = 0;
     }
 
-    public void get_parameters()
+    public static void get_parameters()
     {
       // people per office
-      Params::get_param_from_string("office_size", Office_size);
+      FredParameters.GetParameter("office_size", ref Office_size);
 
       // workplace size limits
-      Workplace::workplace_size_group_count = Params::get_param_vector((string)"workplace_size_max", Workplace::workplace_size_max);
+      workplace_size_max = FredParameters.GetParameterList<int>("workplace_size_max");
+      workplace_size_group_count = workplace_size_max.Count;
       //Add the last column so that it goes to intmax
-      Workplace::workplace_size_max.push_back(INT_MAX);
-      Workplace::workplace_size_group_count++;
+      workplace_size_max.Add(int.MaxValue);
+      workplace_size_group_count++;
       //Set all of the workplace counts to 0
-      for (int i = 0; i < Workplace::workplace_size_group_count; ++i)
+      for (int i = 0; i < workplace_size_group_count; ++i)
       {
-        Workplace::workers_by_workplace_size.push_back(0);
+        workers_by_workplace_size.Add(0);
       }
 
-      Params::get_param_from_string("workplace_contacts", &Workplace::contacts_per_day);
-      int n = Params::get_param_matrix((string)"workplace_trans_per_contact", &Workplace::prob_transmission_per_contact);
+      FredParameters.GetParameter("workplace_contacts", ref contacts_per_day);
+      prob_transmission_per_contact = FredParameters.GetParameterMatrix<double>("workplace_trans_per_contact");
+      int n = Convert.ToInt32(Math.Sqrt(prob_transmission_per_contact.Length));
       if (Global.Verbose > 1)
       {
-        printf("\nWorkplace_contact_prob:\n");
+        Console.WriteLine("\nWorkplace_contact_prob:");
         for (int i = 0; i < n; ++i)
         {
           for (int j = 0; j < n; ++j)
           {
-            printf("%f ", Workplace::prob_transmission_per_contact[i][j]);
+            Console.WriteLine("%f ", prob_transmission_per_contact[i, j]);
           }
-          printf("\n");
+          Console.WriteLine("\n");
         }
       }
 
@@ -73,9 +75,9 @@ namespace Fred
       {
         for (int j = 0; j < n; ++j)
         {
-          if (Workplace::prob_transmission_per_contact[i][j] > max_prob)
+          if (prob_transmission_per_contact[i, j] > max_prob)
           {
-            max_prob = Workplace::prob_transmission_per_contact[i][j];
+            max_prob = prob_transmission_per_contact[i, j];
           }
         }
       }
@@ -87,25 +89,25 @@ namespace Fred
         {
           for (int j = 0; j < n; ++j)
           {
-            Workplace::prob_transmission_per_contact[i][j] /= max_prob;
+            prob_transmission_per_contact[i, j] /= max_prob;
           }
         }
         // compensate contact rate
-        Workplace::contacts_per_day *= max_prob;
+        contacts_per_day *= max_prob;
       }
 
       if (Global.Verbose > 0)
       {
-        printf("\nWorkplace_contact_prob after normalization:\n");
+        Console.WriteLine("\nWorkplace_contact_prob after normalization:\n");
         for (int i = 0; i < n; ++i)
         {
           for (int j = 0; j < n; ++j)
           {
-            printf("%f ", Workplace::prob_transmission_per_contact[i][j]);
+            Console.WriteLine("{0} ", prob_transmission_per_contact[i, j]);
           }
-          printf("\n");
+          Console.WriteLine();
         }
-        printf("\ncontact rate: %f\n", Workplace::contacts_per_day);
+        Console.WriteLine("\ncontact rate: {0}", contacts_per_day);
       }
       // end normalization
     }
@@ -157,7 +159,7 @@ namespace Fred
       }
       int rooms = get_size() / Office_size;
       this.next_office = 0;
-      if (get_size() % Office_size)
+      if (get_size() % Office_size != 0)
       {
         rooms++;
       }
@@ -174,9 +176,9 @@ namespace Fred
       //FredUtils.Status(1, "workplace %d %s number %d rooms %d\n", this.get_id(), this.get_label(), this.get_size(), rooms);
       for (int i = 0; i < rooms; ++i)
       {
-        string new_label = string.Format("{0}-{0:0.000}", this.Label, i);
+        string new_label = string.Format("{0}-{0:0.000}", this.get_label(), i);
         var office = new Office(new_label,
-                              PlaceSubType.None,
+                              SUBTYPE_NONE,
                               this.get_longitude(),
                               this.get_latitude());
 

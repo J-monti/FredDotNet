@@ -1,78 +1,59 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 
 namespace Fred
 {
-  public class Person_Init_Data
+  public struct Person_Init_Data
   {
-    string house_label;
-    string school_label;
-    string work_label;
-    string label;
-    int age, race, relationship;
-    char sex;
-    bool today_is_birthday;
-    int day;
-    Place house;
-    Place work;
-    Place school;
-    bool in_grp_qrtrs;
-    char gq_type;
+    public string house_label;
+    public string school_label;
+    public string work_label;
+    public string label;
+    public int age;
+    public int race;
+    public int relationship;
+    public char sex;
+    public bool today_is_birthday;
+    public int day;
+    public Place house;
+    public Place work;
+    public Place school;
+    public bool in_grp_qrtrs;
+    public char gq_type;
 
-    Person_Init_Data()
+    public Person_Init_Data(int _age, int _race, int _relationship, char _sex, bool _today_is_birthday, int _day)
     {
-      default_initialization();
-    }
-
-    Person_Init_Data(int _age, int _race, int _relationship,
-         char _sex, bool _today_is_birthday, int _day)
-    {
-
-      default_initialization();
       age = _age;
       race = _race;
       relationship = _relationship;
       sex = _sex;
       today_is_birthday = _today_is_birthday;
       day = _day;
-    }
-
-    void default_initialization()
-    {
-      this.house = NULL;
-      this.work = NULL;
-      this.school = NULL;
-      strcpy(this.label, "-1");
-      strcpy(this.house_label, "-1");
-      strcpy(this.school_label, "-1");
-      strcpy(this.work_label, "-1");
-      this.age = -1;
-      this.race = -1;
-      this.relationship = -1;
-      this.sex = -1;
-      this.day = 0;
-      this.today_is_birthday = false;
-      this.in_grp_qrtrs = false;
-      this.gq_type = ' ';
-    }
-
-    const std::string to_string() const {
-    std::stringstream ss;
-    //ss << setw( 8 ) << setfill( ' ' ); 
-    ss << "Person Init Data:"
-       << " label " << this.label
-       << " age " << this.age
-       << " race " << this.race
-       << " relationship " << this.relationship
-       << " today_is_birthday? " << this.today_is_birthday
-       << " day " << this.day
-       << " house_label " << this.house_label
-       << " work_label " << this.work_label
-       << " school_label " << this.school_label
-       << " in_group_quarters? " << this.in_grp_qrtrs;
-
-    return ss.str();
+      house = null;
+      work = null;
+      school = null;
+      gq_type = ' ';
+      in_grp_qrtrs = false;
+      house_label = "-1";
+      school_label = "-1";
+      work_label = "-1";
+      label = "-1";
   }
-}
+
+    public override string ToString()
+    {
+      var builder = new StringBuilder();
+      builder.Append("Person Init Data:");
+      builder.Append($" label {this.label}");
+      builder.Append($" age {this.age}");
+      builder.Append($" race {this.race}");
+      builder.Append($" relationship {this.relationship}");
+      builder.Append($" today_is_birthday? {this.today_is_birthday}");
+      builder.Append($" day {this.day}");
+      builder.Append($" house_label {this.house_label}");
+      builder.Append($" work_label {this.work_label}");
+      builder.Append($" school_label {this.school_label}");
+      builder.Append($" in_group_quarters? {this.in_grp_qrtrs}");
+      return builder.ToString();
+    }
+  }
 }

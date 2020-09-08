@@ -10,14 +10,14 @@ namespace Fred
 
     public Vaccine_Priority_Decision_Pregnant(Policy p) : base(p)
     {
-      this.Name = "Vaccine Priority Decision to Include Pregnant Women";
-      this.Type = "Y/N";
-      this.Policy = p;
+      this.name = "Vaccine Priority Decision to Include Pregnant Women";
+      this.type = "Y/N";
+      this.policy = p;
     }
 
-    public override int Evaluate(Person person, int disease, DateTime day)
+    public override int evaluate(Person person, int disease, int day)
     {
-      return person.Demographics.IsPregnant ? 1 :- 1;
+      return person.get_demographics().is_pregnant() ? 1 :- 1;
     }
   }
 }

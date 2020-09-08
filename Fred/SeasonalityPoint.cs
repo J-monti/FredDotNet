@@ -1,22 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Fred
+﻿namespace Fred
 {
-  public class SeasonalityPoint
+  public struct SeasonalityPoint
   {
+    public int x;
+    public int y;
+    public double value;
+
     public SeasonalityPoint(int x, int y, double value)
     {
-      this.X = x;
-      this.Y = y;
-      this.Value = value;
+      this.x = x;
+      this.y = y;
+      this.value = value;
     }
-
-    public int X { get; }
-
-    public int Y { get; }
-
-    public double Value { get; }
   }
 }
