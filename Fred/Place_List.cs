@@ -127,11 +127,15 @@ namespace Fred
 
       // geography
       FredParameters.GetParameter("msa_file", ref MSA_file);
+      MSA_file = Utils.get_fred_file_name(MSA_file);
       FredParameters.GetParameter("counties_file", ref Counties_file);
+      Counties_file = Utils.get_fred_file_name(Counties_file);
       FredParameters.GetParameter("states_file", ref States_file);
+      States_file = Utils.get_fred_file_name(States_file);
 
       // population parameters
       FredParameters.GetParameter("synthetic_population_directory", ref Global.Synthetic_population_directory);
+      Global.Synthetic_population_directory = Utils.get_fred_file_name(Global.Synthetic_population_directory);
       FredParameters.GetParameter("synthetic_population_id", ref Global.Synthetic_population_id);
       FredParameters.GetParameter("synthetic_population_version", ref Global.Synthetic_population_version);
       FredParameters.GetParameter("city", ref Global.City);
@@ -195,7 +199,9 @@ namespace Fred
         string hh_hosp_map_file_name = string.Empty;
 
         FredParameters.GetParameter("household_hospital_map_file_directory", ref hosp_file_dir);
+        hosp_file_dir = Utils.get_fred_file_name(hosp_file_dir);
         FredParameters.GetParameter("household_hospital_map_file", ref hh_hosp_map_file_name);
+        hh_hosp_map_file_name = Utils.get_fred_file_name(hh_hosp_map_file_name);
         FredParameters.GetParameter("hospital_worker_to_bed_ratio", ref Hospital_worker_to_bed_ratio);
         Hospital_worker_to_bed_ratio = Hospital_worker_to_bed_ratio == 0.0 ? 1.0 : Hospital_worker_to_bed_ratio;
         FredParameters.GetParameter("hospital_outpatients_per_day_per_employee", ref Hospital_outpatients_per_day_per_employee);
@@ -471,6 +477,7 @@ namespace Fred
             break;
           }
         }
+
         fp.Dispose();
         if (found)
         {
@@ -497,12 +504,12 @@ namespace Fred
         string state = string.Empty;
         string fips = string.Empty;
         bool found = false;
-        if (!File.Exists(Counties_file))
+        if (!File.Exists(States_file))
         {
-          Utils.fred_abort("counties file |{0}| NOT FOUND\n", Counties_file);
+          Utils.fred_abort("states file |{0}| NOT FOUND\n", States_file);
         }
 
-        using var fp = new StreamReader(Counties_file);
+        using var fp = new StreamReader(States_file);
         while (fp.Peek() != -1)
         {
           line = fp.ReadLine();
@@ -532,10 +539,11 @@ namespace Fred
     public void read_all_places(List<string[]> Demes)
     {
       // clear the vectors
-      this.households.Clear();
-      this.neighborhoods.Clear();
-      this.schools.Clear();
       this.workplaces.Clear();
+      this.neighborhoods.Clear();
+
+      this.households.Clear();
+      this.schools.Clear();
       this.hospitals.Clear();
       this.counties.Clear();
       this.census_tracts.Clear();
@@ -774,7 +782,7 @@ namespace Fred
       //// add Neighborhoods in one contiguous block
       //add_preallocated_places<Neighborhood>(Place.TYPE_NEIGHBORHOOD, neighborhood_allocator);
 
-      int number_places = (int)places.Count;
+      int number_places = places.Count;
       for (int p = 0; p < number_places; ++p)
       {
         // add workplaces to the regional layer (needed for teacher assignments to schools)
@@ -2587,7 +2595,7 @@ namespace Fred
     {
       Utils.assert(this.place_label_map != null);
 
-      if (s == "-1")
+      if (s == "-1" || string.IsNullOrWhiteSpace(s))
       {
         return null;
       }
@@ -3835,6 +3843,10 @@ namespace Fred
       while (fp.Peek() != -1)
       {
         line = fp.ReadLine();
+        if (line.Contains("\""))
+        {
+          line = line.Replace("\"", string.Empty);
+        }
         var tokens = line.Split(',');
 
         // skip header line
@@ -3895,7 +3907,6 @@ namespace Fred
           // TODO: SetInsertResultT result = pids.Add(new 
           pids.Add(new Place_Init_Data(s, place_type, place_subtype, tokens[latitude], tokens[longitude], deme_id, county,
                   tract_index, tokens[hh_income]));
-
           ++this.place_type_counts[place_type];
           //if (result.second)
           //{
@@ -3914,6 +3925,10 @@ namespace Fred
       while (fp.Peek() != -1)
       {
         line = fp.ReadLine();
+        if (line.Contains("\""))
+        {
+          line = line.Replace("\"", string.Empty);
+        }
         var tokens = line.Split(',');
         // skip header line
         if (tokens[workplace_id] != "workplace_id" && tokens[workplace_id] != "sp_id")
@@ -3948,6 +3963,10 @@ namespace Fred
       while (fp.Peek() != -1)
       {
         line = fp.ReadLine();
+        if (line.Contains("\""))
+        {
+          line = line.Replace("\"", string.Empty);
+        }
         var tokens = line.Split(',');
         // skip header line
         if (tokens[workplace_id] != "workplace_id" && tokens[workplace_id] != "sp_id")
@@ -3993,7 +4012,7 @@ namespace Fred
       while (fp.Peek() != -1)
       {
         line = fp.ReadLine();
-        if (line.Contains("\"\""))
+        if (line.Contains("\""))
         {
           line = line.Replace("\"", string.Empty);
         }
@@ -4016,7 +4035,7 @@ namespace Fred
             int n_counties = counties.Count;
             for (county = 0; county < n_counties; ++county)
             {
-              if (counties[countyIndex].get_fips() == fips)
+              if (counties[county].get_fips() == fips)
               {
                 break;
               }
@@ -4061,6 +4080,10 @@ namespace Fred
       while (fp.Peek() != -1)
       {
         line = fp.ReadLine();
+        if (line.Contains("\""))
+        {
+          line = line.Replace("\"", string.Empty);
+        }
         var tokens = line.Split(',');
 
         // check for 2010_ver1 format
@@ -4081,7 +4104,11 @@ namespace Fred
             // add the additional field
             Array.Resize(ref tokens, tokens.Length + 1);
             // shift last three fields back one position
-            throw new NotImplementedException("PLACE_LIST 2010 ver1 is not implemented!");
+            //throw new NotImplementedException("PLACE_LIST 2010 ver1 is not implemented!");
+            tokens[tokens.Length - 1] = tokens[tokens.Length - 2];
+            tokens[tokens.Length - 2] = tokens[tokens.Length - 3];
+            tokens[tokens.Length - 3] = tokens[tokens.Length - 4];
+            tokens[tokens.Length - 4] = string.Empty;
             //tokens.assign(longitude, latitude);
             //tokens.assign(latitude, stcotrbg_b);
             //tokens.assign(stcotrbg_b, stcotrbg_a);

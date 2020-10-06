@@ -1955,6 +1955,7 @@ namespace Fred
           continue;
         }
 
+        line = line.Trim().Replace("\"", string.Empty);
         var pid = get_person_init_data(line, is_group_quarters_pop, is_2010_ver1_format);
         // verbose printing of all person initialization data
         if (Global.Verbose > 1)

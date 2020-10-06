@@ -193,7 +193,7 @@ namespace Fred
     public static Tracker<int> Daily_Tracker = new Tracker<int>();
     public static Tracker<long> Tract_Tracker = new Tracker<long>();
     public static Tracker<int> Income_Category_Tracker = new Tracker<int>();
-    public static int[] Popsize_by_age = new int[Demographics.MAX_AGE];
+    public static int[] Popsize_by_age = new int[Demographics.MAX_AGE + 1];
     public static Network Transmission_Network;
     public static Sexual_Transmission_Network Sexual_Partner_Network;
 

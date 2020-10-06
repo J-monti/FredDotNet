@@ -40,7 +40,7 @@ namespace Fred
       }
       else
       {
-        paramfile = @"C:\Users\JonathanMontiverdi\source\repos\FredDotNet\Fred\defaults.txt";
+        paramfile = Utils.get_fred_file_name("$FRED_HOME/input_files/defaults");
       }
       Utils.FRED_STATUS(0,"param file = %s\n", paramfile);
 

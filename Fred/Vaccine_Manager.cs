@@ -14,9 +14,9 @@ namespace Fred
     public const int VACC_DOSE_RAND_PRIORITY = 2;
     public const int VACC_DOSE_LAST_PRIORITY = 3;
 
-    private Vaccines vaccine_package;             //Pointer to the vaccines that this manager oversees
-    private List<Person> priority_queue;         //Queue for the priority agents
-    private List<Person> queue;                  //Queue for everyone else
+    private readonly Vaccines vaccine_package;             //Pointer to the vaccines that this manager oversees
+    private List<Person> priority_queue = new List<Person>();         //Queue for the priority agents
+    private List<Person> queue = new List<Person>();                  //Queue for everyone else
 
     //Parameters from Input 
     private bool do_vacc;                           //Is Vaccination being performed
@@ -29,7 +29,7 @@ namespace Fred
     private int vaccine_dose_priority;              //Defines where people getting multiple doses fit in the queue
                                                     // See defines above for values
 
-    private Timestep_Map vaccination_capacity_map; // How many people can be vaccinated now,
+    private readonly Timestep_Map vaccination_capacity_map; // How many people can be vaccinated now,
                                                    // gets its value from the capacity change list
     private int current_vaccine_capacity;           // variable to keep track of how many persons this 
                                                     // can vaccinate each timestep.

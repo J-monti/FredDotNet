@@ -37,10 +37,11 @@ namespace Fred
       place_type = _place_type;
       place_subtype = _place_subtype;
       s = _s;
-      this.lat = new FredGeo(Convert.ToDouble(lat));
-      this.lon = new FredGeo(Convert.ToDouble(lon));
-      county = _county;
-      census_tract_index = _census_tract_index;
+      this.deme_id = _deme_id;
+      this.lat = new FredGeo(Convert.ToDouble(_lat));
+      this.lon = new FredGeo(Convert.ToDouble(_lon));
+      this.county = _county;
+      this.census_tract_index = _census_tract_index;
       this.income = Convert.ToInt32(_income);
 
       if (!(lat.Value >= -90 && lat.Value <= 90) || !(lon.Value >= -180 && lon.Value <= 180))

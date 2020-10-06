@@ -250,7 +250,7 @@ namespace Fred
       // If this parameter is "none", then there is no map
       if (!map_file_name.StartsWith("none"))
       {
-        Utils.get_fred_file_name(ref map_file_name);
+        map_file_name = Utils.get_fred_file_name(map_file_name);
         if (!File.Exists(map_file_name))
         {
           Utils.fred_abort("Help! Can't read {0} Timestep Map\n", map_file_name);

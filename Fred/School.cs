@@ -54,6 +54,7 @@ namespace Fred
       this.orig_students_in_grade = new int[Neighborhood_Patch.GRADES];
       this.classrooms = new List<Classroom>[Neighborhood_Patch.GRADES];
       this.students_in_grade = new int[Neighborhood_Patch.GRADES];
+      this.next_classroom = new int[Neighborhood_Patch.GRADES];
       for (int i = 0; i < Neighborhood_Patch.GRADES; ++i)
       {
         this.students_in_grade[i] = 0;
@@ -81,6 +82,7 @@ namespace Fred
       this.orig_students_in_grade = new int[Neighborhood_Patch.GRADES];
       this.classrooms = new List<Classroom>[Neighborhood_Patch.GRADES];
       this.students_in_grade = new int[Neighborhood_Patch.GRADES];
+      this.next_classroom = new int[Neighborhood_Patch.GRADES];
       for (int i = 0; i < Neighborhood_Patch.GRADES; ++i)
       {
         this.students_in_grade[i] = 0;

@@ -207,17 +207,6 @@ namespace Fred
       }
     }
 
-    public static void get_fred_file_name(ref string map_file_name)
-    {
-      var fredHome = Environment.GetEnvironmentVariable("FRED_HOME");
-      if (!string.IsNullOrWhiteSpace(fredHome))
-      {
-        map_file_name = Path.Combine(fredHome, map_file_name);
-        return;
-      }
-      map_file_name = Path.Combine(Directory.GetCurrentDirectory(), map_file_name);
-    }
-
 
     private static Stopwatch s_EpidemicTimer = new Stopwatch();
     public static void fred_start_epidemic_timer()

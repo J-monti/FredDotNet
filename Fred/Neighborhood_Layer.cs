@@ -73,6 +73,8 @@ namespace Fred
       }
 
       // setup patches
+      this.rows++;
+      this.cols++;
       this.grid = new Neighborhood_Patch[this.rows, this.cols];
       for (int i = 0; i < this.rows; i++)
       {
